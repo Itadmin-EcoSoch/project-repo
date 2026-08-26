@@ -1,0 +1,36 @@
+# Render Blueprint — backend API for EcoSoch Project Repository
+services:
+  - type: web
+    name: ecosoch-project-repo-api
+    runtime: node
+    rootDir: backend
+    plan: starter            # persistent instance (keeps warm cache; not cold-start serverless)
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: ALLOWED_EMAIL_DOMAIN
+        value: ecosoch.com
+      - key: AUTH_MODE
+        value: domain
+      - key: DEFAULT_ROLE
+        value: User
+      - key: REQUIRE_AUTH
+        value: "false"        # flip to true after everyone has signed in once
+      - key: JWT_EXPIRES
+        value: 7d
+      - key: SHEETS_TIMEOUT
+        value: "90000"
+      - key: FRONTEND_URL
+        value: https://project-repository.ecosoch.com
+      # ── secrets: set these in the Render dashboard (sync:false = prompt) ──
+      - key: SHEETS_API_URL
+        sync: false
+      - key: SHEETS_API_TOKEN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: JWT_SECRET
+        sync: false
