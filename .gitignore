@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# secrets & local env (NEVER commit real .env — use .env.example)
+.env
+**/.env
+!**/.env.example
+
+# build output
+frontend/dist/
+dist/
+build/
+
+# logs / os
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# vercel
+.vercel/
