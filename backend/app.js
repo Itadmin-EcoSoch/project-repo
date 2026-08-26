@@ -29,7 +29,25 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(compression());                       // gzip — big win on list payloads
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+/*  CORS — allow the configured frontend(s), plus any *.ecosoch.com and any
+    *.vercel.app (preview + production deploys), and non-browser callers.
+    The app authenticates with Bearer tokens, not cookies.                  */
+const ALLOWED_ORIGINS = (process.env.FRONTEND_URL || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
+app.use(cors({
+  origin(origin, cb) {
+    if (!origin) return cb(null, true);                     // curl / server-to-server
+    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    try {
+      const h = new URL(origin).hostname;
+      if (h === 'localhost' || h.endsWith('.ecosoch.com') || h.endsWith('.vercel.app')) {
+        return cb(null, true);
+      }
+    } catch { /* malformed origin */ }
+    return cb(new Error('Not allowed by CORS: ' + origin));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '5mb' }));
 app.use(morgan('dev'));
 app.use(attachUser);          // decodes the session token when one is sent
