@@ -86,7 +86,7 @@ async function sendMail(opts) {
    That makes it impossible to spam ecosoch-team@ecosoch.com by accident
    while you are still trying this out.                                  */
 const TEST_MODE = String(process.env.NEW_ORDER_TEST_MODE ?? 'true').toLowerCase() === 'true';
-const TEST_TO   = process.env.NEW_ORDER_TEST_RECIPIENT || 'srilekha@ecosoch.com';
+const TEST_TO   = process.env.NEW_ORDER_TEST_RECIPIENT || 'srilekha@ecosoch.com,venkat@ecosoch.com';
 
 const split = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -96,7 +96,7 @@ const ATTACHMENT_TIMEOUT_MS = Number(process.env.NEW_ORDER_FILES_TIMEOUT || 1200
 const CLIENT_TIMEOUT_MS     = Number(process.env.NEW_ORDER_CLIENT_TIMEOUT || 12000);
 
 function recipients() {
-  if (TEST_MODE) return { to: [TEST_TO], cc: [], testMode: true };
+  if (TEST_MODE) return { to: split(TEST_TO), cc: [], testMode: true };
   return {
     to: split(process.env.NEW_ORDER_TO) .length ? split(process.env.NEW_ORDER_TO)  : ['ecosoch-team@ecosoch.com'],
     cc: split(process.env.NEW_ORDER_CC),
