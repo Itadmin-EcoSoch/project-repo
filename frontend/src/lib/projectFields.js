@@ -442,16 +442,23 @@ export const isExternalClient = f => String(f?.clientType ?? '').trim().toLowerC
     one an admin later removed from the list, still shows up on THIS project
     rather than silently blanking the field the next time it's opened.       */
 export function mergeOptions(base = [], extra = [], currentValue = '') {
-  const seen   = new Set(base.map(o => String(o).trim().toLowerCase()));
-  const merged = [...base];
+  /*  The sheet (Dropdown_Options, passed in as `extra`) is the source of truth
+      once a field has been seeded there — that is what lets Admins add AND
+      delete built-in values from Manage Dropdown Lists. The hardcoded `base`
+      is only a fallback for a field not yet present in the sheet, so a form
+      never shows an empty dropdown before the one-time seed runs.          */
+  const sheet  = (extra || []).map(v => String(v ?? '').trim()).filter(Boolean);
+  const source = sheet.length ? sheet : (base || []);
 
-  (extra || []).forEach(v => {
-    const s = String(v ?? '').trim();
-    if (!s) return;
-    const key = s.toLowerCase();
+  const seen = new Set();
+  const merged = [];
+  source.forEach(v => {
+    const sv = String(v ?? '').trim();
+    if (!sv) return;
+    const key = sv.toLowerCase();
     if (seen.has(key)) return;
     seen.add(key);
-    merged.push(s);
+    merged.push(sv);
   });
 
   const cur = String(currentValue ?? '').trim();

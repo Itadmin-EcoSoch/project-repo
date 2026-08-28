@@ -129,8 +129,7 @@ export default function AdminDropdowns() {
         own table, not the hardcoded list baked into the frontend, so typing
         "EPC" again would otherwise create a second, confusing row that
         merges away to nothing visible on the actual form.                  */
-    const clash = active.builtIn.some(v => v.toLowerCase() === value.toLowerCase())
-      || addedRows.some(r => String(r.value || '').toLowerCase() === value.toLowerCase());
+    const clash = addedRows.some(r => String(r.value || '').toLowerCase() === value.toLowerCase());
     if (clash) { toast.error(`"${value}" is already on this list.`); return; }
 
     setSaving(true);
@@ -216,7 +215,7 @@ export default function AdminDropdowns() {
                   <ListItemButton selected={l.key === activeKey} onClick={() => setActiveKey(l.key)}>
                     <ListItemText
                       primary={l.label}
-                      secondary={`${l.builtIn.length} built-in${addedCount ? ` · +${addedCount} added` : ''}`}
+                      secondary={`${addedCount} option${addedCount === 1 ? '' : 's'}`}
                     />
                   </ListItemButton>
                 </ListItem>
@@ -253,18 +252,9 @@ export default function AdminDropdowns() {
               <Box textAlign="center" py={4}><CircularProgress size={24} /></Box>
             ) : (
               <>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  Built-in (from code — cannot be removed here)
-                </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2.5 }}>
-                  {active.builtIn.map(v => <Chip key={v} label={v} size="small" />)}
-                </Box>
-
-                <Divider sx={{ mb: 2 }} />
-
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Added by your team
+                    Options
                   </Typography>
                   {selectedIds.length > 0 && (
                     <Button size="small" color="error" variant="outlined"
@@ -275,7 +265,7 @@ export default function AdminDropdowns() {
                 </Stack>
                 {addedRows.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
-                    Nothing added yet — use the box above.
+                    No options yet — add one above. (Run the one-time import in Apps Script to bring the built-in values in here.)
                   </Typography>
                 ) : (
                   <List dense disablePadding>
