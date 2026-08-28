@@ -1090,7 +1090,7 @@ export const PROJECT_SECTIONS = [
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         default: 'Under Warranty',
         lockedTo  : f => (isNewProject(f) ? 'Under Warranty' : null),
-        forceValue: f => (isNewProject(f) ? 'Under Warranty' : null),
+        forceValue: f => (String(f.warrantyStatus || '').trim() ? undefined : 'Under Warranty'),
         help: f => (isNewProject(f)
           ? 'A new order always starts under warranty. The other option becomes available once the project is saved.'
           : undefined) },

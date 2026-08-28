@@ -22,7 +22,7 @@ import ProjectUpdateEmailModal from '../components/NewOrderEmailModal';
 import ProjectFormFields from './ProjectFormFields';
 import {
   emptyProjectForm, validateProject, toProjectPayload, ALL_FIELDS, isVisible,
-  toDateInput, toYesNo,
+  toDateInput, toYesNo, amcSetupPayload,
 } from '../lib/projectFields';
 
 import { C, page, Footer } from './formKit';
@@ -357,7 +357,14 @@ export default function EditProject() {
         if (String(v ?? '') !== String(before[k] ?? '')) patch[k] = v;
       }
 
-      if (!Object.keys(patch).length) {
+      /*  AMC terms are transient (they live on AMC_Contracts, not Projects) and
+          are only present when the user actually fills them in on this edit —
+          so this is non-null exactly when a new AMC schedule should be created.
+          The backend skips any type that already has a contract, so re-saving
+          never duplicates.                                                    */
+      const amc = amcSetupPayload(form, id);
+
+      if (!Object.keys(patch).length && !amc) {
         /*  Do NOT clear savedChanges here.
 
             setOriginal(form) runs after a successful save, so a SECOND press of
@@ -372,15 +379,31 @@ export default function EditProject() {
         return savedChanges ?? [];
       }
 
-      const res = await api.patch(`/api/projects/${id}`, {
-        ...patch,
-        changed_by: user?.name || user?.email || 'staff',
-        /* the threaded "Updated Order" email is sent explicitly from the modal */
-        suppress_auto_email: true,
-      });
+      let changes = savedChanges ?? [];
+      if (Object.keys(patch).length) {
+        const res = await api.patch(`/api/projects/${id}`, {
+          ...patch,
+          changed_by: user?.name || user?.email || 'staff',
+          /* the threaded "Updated Order" email is sent explicitly from the modal */
+          suppress_auto_email: true,
+        });
+        changes = res?.changes || [];
+        setSavedChanges(changes);
+      }
 
-      const changes = res?.changes || [];
-      setSavedChanges(changes);
+      if (amc) {
+        try {
+          const r = await api.post('/api/amc-setup/create', amc);
+          const d = r?.data ?? r;
+          const n = d?.contracts?.length || 0;
+          toast.success(n
+            ? `AMC schedule created · ${d.total_visits || 0} visit${(d.total_visits || 0) === 1 ? '' : 's'}`
+            : 'AMC already set up — no duplicate created');
+        } catch (e) {
+          toast.error(e.message || 'Could not create the AMC schedule');
+        }
+      }
+
       setOriginal(form);
       toast.success(changes.length
         ? `✅ Saved · ${changes.length} field${changes.length > 1 ? 's' : ''} changed`

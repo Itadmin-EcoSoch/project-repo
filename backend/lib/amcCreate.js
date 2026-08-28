@@ -323,9 +323,23 @@ async function createSolarCareAMC(body = {}) {
   }
 
   const addMonthsTable = await loadAddMonths();
+
+  /*  Skip a type that already has a contract on this project, so editing a
+      project and saving again cannot create duplicate AMC schedules.        */
+  const existingTypes = new Set();
+  try {
+    const { data: existing } = await db.list('amc_contracts', { where: { Project_ID: projectId } });
+    (existing || []).forEach(c => {
+      if (String(c.AMC_Status || '').trim().toLowerCase() !== 'cancelled') {
+        existingTypes.add(String(c.AMC_Type || '').trim().toLowerCase());
+      }
+    });
+  } catch (e) { /* lookup failed — fall through and create as before */ }
+
   const created = [];
 
   for (const type of types) {
+    if (existingTypes.has(type.toLowerCase())) continue;   // already has a contract of this type
     const block = type === INSPECTION ? (body.inspection || body) : (body.cleaning || body);
     const spec  = readTypeSpec(block, type, projectId);
     created.push(await createOneContract(spec, { addMonthsTable, force: body.force }));
