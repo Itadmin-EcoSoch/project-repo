@@ -12,7 +12,7 @@
 --------------------------------------------------------------------------- */
 
 import { useState, useEffect, useRef } from 'react';
-import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, toDateInput } from '../lib/projectFields';
+import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, toDateInput, isNewProject } from '../lib/projectFields';
 import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType } from './formKit';
 import { maxLengthFor, TEXTAREA_MAX } from '../lib/fieldLimits';
 import FileField from './FileField';
@@ -187,6 +187,20 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
                     color: v ? C.text1 : C.text3, whiteSpace: 'pre-wrap',
                     wordBreak: 'break-word', minHeight: 42 }}>
         {display || f.readOnlyNote || 'Copied automatically'}
+      </div>
+    );
+  }
+
+  /*  Project status on a brand-new (not-yet-saved) project: always 'Active',
+      shown as a read-only dark-orange badge. It only becomes a dropdown once
+      the project is saved (the Edit form), where the real status options apply. */
+  if ((f.name === 'status' || f.sheet === 'Project_Status') && isNewProject(form)) {
+    return (
+      <div style={{ padding:'11px 14px', background:'#c2410c', color:'#fff',
+                    borderRadius:10, border:'1px solid #c2410c', fontSize:13,
+                    fontWeight:700, letterSpacing:'.02em', minHeight:42,
+                    display:'flex', alignItems:'center' }}>
+        {v || 'Active'}
       </div>
     );
   }
