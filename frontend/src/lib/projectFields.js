@@ -1177,6 +1177,25 @@ export function validateProject(form) {
     errors.size = 'System size must be greater than zero';
   }
 
+  /*  Expected Installation Date must be on or before Expected Commissioning Date.
+      Both are ISO yyyy-mm-dd in form state, so a string compare is a date compare. */
+  if (form.expInstDate && form.expCommsnDate &&
+      String(form.expInstDate) > String(form.expCommsnDate)) {
+    errors.expInstDate = 'Expected Installation Date must be on or before Expected Commissioning Date';
+  }
+
+  /*  Every numeric field must be zero or positive — no negatives anywhere. */
+  for (const f of ALL_FIELDS) {
+    if (f.type !== 'number' && f.type !== 'currency' && f.type !== 'percent') continue;
+    if (!isVisible(f, form)) continue;
+    const v = form[f.name];
+    if (v === '' || v === null || v === undefined) continue;
+    if (Number(v) < 0) {
+      const text = typeof f.label === 'function' ? f.label(form) : String(f.label ?? f.name);
+      errors[f.name] = `${text.replace(/[:*]$/, '')} cannot be negative`;
+    }
+  }
+
   /*  Numeric ceilings declared as f.max on the field spec. */
   for (const f of ALL_FIELDS) {
     if (typeof f.max !== 'number') continue;

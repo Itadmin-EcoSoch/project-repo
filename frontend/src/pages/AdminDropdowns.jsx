@@ -39,7 +39,7 @@ import { TICKET_TYPES, TICKET_PRIORITIES, TICKET_STATUSES } from '../lib/solarca
 import {
   Box, Paper, Typography, Button, TextField, CircularProgress,
   List, ListItem, ListItemButton, ListItemText, Chip, IconButton,
-  Divider, Stack,
+  Divider, Stack, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -106,6 +106,7 @@ export default function AdminDropdowns() {
   }
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { setSelectedIds([]); }, [activeKey]);
 
   const active = LISTS.find(l => l.key === activeKey) || LISTS[0];
 
@@ -145,6 +146,27 @@ export default function AdminDropdowns() {
     }
   }
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const toggleSelect = (id) =>
+    setSelectedIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+
+  async function handleBulkDelete() {
+    const ids = selectedIds.filter(id => addedRows.some(r => r.id === id));
+    if (!ids.length) return;
+    if (!window.confirm(
+      `Remove ${ids.length} value${ids.length > 1 ? 's' : ''} from ${active.label}?\n\n` +
+      `Projects that already use them keep them — this only removes them from the picker for new entries.`
+    )) return;
+    try {
+      await Promise.all(ids.map(id => deleteDropdownOption(id)));
+      toast.success(`Removed ${ids.length} value${ids.length > 1 ? 's' : ''}`);
+      setRows(prev => prev.filter(r => !ids.includes(r.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      toast.error(err.message || 'Could not delete the selected values');
+    }
+  }
+
   async function handleDelete(row) {
     if (!window.confirm(
       `Remove "${row.value}" from ${active.label}?\n\n` +
@@ -176,12 +198,6 @@ export default function AdminDropdowns() {
       {/* Header — stays put, never scrolls */}
       <Box sx={{ flexShrink: 0 }}>
         <Typography variant="h4" gutterBottom>Manage Dropdown Lists</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 640 }}>
-          Add or remove values for the picklists on the New/Edit Project form. A value
-          added here shows up for everyone the next time they open that form — no code
-          change or redeploy needed. Deleting a value only removes it from the picker;
-          it does not touch any project that already has it saved.
-        </Typography>
       </Box>
 
       {/*  flex:1 + minHeight:0 is what lets the row below actually shrink to
@@ -246,9 +262,17 @@ export default function AdminDropdowns() {
 
                 <Divider sx={{ mb: 2 }} />
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                  Added by your team
-                </Typography>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Added by your team
+                  </Typography>
+                  {selectedIds.length > 0 && (
+                    <Button size="small" color="error" variant="outlined"
+                            startIcon={<DeleteIcon fontSize="small" />} onClick={handleBulkDelete}>
+                      Delete selected ({selectedIds.length})
+                    </Button>
+                  )}
+                </Stack>
                 {addedRows.length === 0 ? (
                   <Typography variant="body2" color="text.secondary">
                     Nothing added yet — use the box above.
@@ -256,12 +280,15 @@ export default function AdminDropdowns() {
                 ) : (
                   <List dense disablePadding>
                     {addedRows.map(r => (
-                      <ListItem key={r.id}
+                      <ListItem key={r.id} disablePadding
                         secondaryAction={
                           <IconButton edge="end" color="error" onClick={() => handleDelete(r)} title="Remove">
                             <DeleteIcon fontSize="small" />
                           </IconButton>
                         }>
+                        <Checkbox edge="start" size="small"
+                                  checked={selectedIds.includes(r.id)}
+                                  onChange={() => toggleSelect(r.id)} />
                         <ListItemText
                           primary={r.value}
                           secondary={r.created_by ? `Added by ${r.created_by}` : undefined}
