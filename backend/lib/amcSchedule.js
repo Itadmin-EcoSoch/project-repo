@@ -305,8 +305,8 @@ function generateTasks(contract, { amcId, projectId, amcType, paymentIds = [], a
       project_id : projectId || contract.project_id || '',
       amc_type   : amcType || contract.amc_type || '',
       due_date   : toISO(due),
-      description: `${amcType || contract.amc_type || 'AMC'} visit ${i + 1} of ${d.total_tasks}`,
-      status     : 'Scheduled',
+      description: `${amcType || contract.amc_type || 'AMC'} Visit - ${i + 1}`,
+      status     : 'Pending',
       payment_id : paymentIndex >= 0 ? (paymentIds[paymentIndex] || '') : '',
       _index     : i + 1,
     });
