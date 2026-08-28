@@ -376,7 +376,7 @@ router.post('/:projectId/send', async (req, res, next) => {
 
     const email = render(project, client, files, req);
     const r = recipients();
-    const subject = r.testMode ? `[TEST] ${email.subject}` : email.subject;
+    const subject = email.subject;
 
     /*  The same files that are listed as links in the body now ride along as
         real attachments, which is what the AppSheet automation did and what
@@ -402,7 +402,7 @@ router.post('/:projectId/send', async (req, res, next) => {
       subject,
       html: email.html,
       text: email.text,
-      replyTo: req.user?.email || project.Salesperson_Email || undefined,
+      replyTo: (r.to && r.to.length ? r.to.join(',') : undefined),
       attachments,
     });
 
@@ -574,7 +574,7 @@ router.post('/:projectId/send-update', async (req, res, next) => {
     });
 
     const r = recipients();
-    const subject = r.testMode ? `[TEST] ${email.subject}` : email.subject;
+    const subject = email.subject;
     const parentId = project.New_Order_Message_Id || null;
 
     const result = await sendMail({
@@ -584,7 +584,7 @@ router.post('/:projectId/send-update', async (req, res, next) => {
       subject,
       html: email.html,
       text: email.text,
-      replyTo: req.user?.email || project.Salesperson_Email || undefined,
+      replyTo: (r.to && r.to.length ? r.to.join(',') : undefined),
       inReplyTo : parentId || undefined,
       references: parentId || undefined,
       attachments,

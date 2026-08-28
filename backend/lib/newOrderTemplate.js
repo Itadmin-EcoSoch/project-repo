@@ -184,6 +184,15 @@ const FILE_COLUMNS = PROJECT_ROWS.filter(r => r.type === 'file').map(r => r.col)
 
 /* ────────────────────────── value helpers ────────────────────────── */
 
+function fmtBool(v) {
+  if (v === true) return 'Yes';
+  if (v === false) return 'No';
+  const s = String(v ?? '').trim().toLowerCase();
+  if (s === 'true')  return 'Yes';
+  if (s === 'false') return 'No';
+  return null;   // not a boolean — leave the value untouched
+}
+
 function esc(v) {
   return String(v ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -289,9 +298,13 @@ function valueHtml(row, raw, files, source) {
     case 'date':     return p(esc(fmtDate(raw)));
     case 'decimal3': return p(esc(fmtDecimal3(raw)));
 
-    default:
+    default: {
+      // Booleans render as Yes/No in the email only (the sheet keeps TRUE/FALSE).
+      const yn = fmtBool(raw);
+      if (yn !== null) return p(esc(yn));
       // Multi-line values (Project_Description) keep their line breaks.
       return String(raw).split(/\r?\n/).map(line => p(esc(line) || '&nbsp;')).join('');
+    }
   }
 }
 
@@ -311,7 +324,7 @@ function valueText(row, raw, files) {
         }).join('\n');
     case 'date':     return fmtDate(raw);
     case 'decimal3': return fmtDecimal3(raw);
-    default:         return String(raw);
+    default:         { const yn = fmtBool(raw); return yn !== null ? yn : String(raw); }
   }
 }
 
@@ -407,7 +420,7 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
 
   const subject   = buildSubject(project, client);
   const projName  = String(project.Project_Name || '').trim();
-  const who       = String(addedBy || project.Sales_Lead || project.Created_By || '').trim();
+  const who       = String(project.Salesperson_Email || addedBy || project.Sales_Lead || '').trim();
   const headline  = `New Project ${projName} is now added${who ? ` by ${who}` : ''}`;
 
   const openLink = opts.appUrl && project.Project_ID
