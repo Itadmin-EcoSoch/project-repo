@@ -491,7 +491,8 @@ export default function AddProject() {
            422 from the API a moment later.                                  */}
       <ProjectFormFields form={form} set={set} errors={errors} statusOptions={['Active']}
                          isAdmin={isAdmin} dropdownOptions={dropdownOptions}
-                         projectId={newProjectId} />
+                         projectId={newProjectId}
+                         onFieldBlur={(f) => { const e = validateProject(form); setErrors(prev => ({ ...prev, [f.name]: e[f.name] })); }} />
 
       {/*  SAVE PROGRESS — only while saving. Replaces nothing; it sits above
            the status card so the card's "Not saved yet" text stays put.   */}

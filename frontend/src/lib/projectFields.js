@@ -495,7 +495,7 @@ export const PROJECT_SECTIONS = [
         help: 'These tags become part of the project name.' },
 
       { name: 'size', label: 'Project Size (in kWp)', type: 'number', sheet: 'Project_Size',
-        required: true, step: '0.001', suffix: 'kWp' },
+        required: true, step: '0.001', suffix: 'kWp', max: 50000 },
 
       /*  AMC ONLY FOR AN EXTERNAL CLIENT.
 
@@ -523,7 +523,7 @@ export const PROJECT_SECTIONS = [
         optionsKey: 'Project_Type' },
 
       { name: 'orderVal', label: 'Order Value (without GST)', type: 'currency', sheet: 'Order_Value',
-        required: true },
+        required: true, max: 10000000000 },
 
       { name: 'margin', label: 'EcoSoch Margin%', type: 'percent', sheet: 'Margin', required: true },
 
@@ -746,7 +746,7 @@ export const PROJECT_SECTIONS = [
 
       { name: 'referralAmount', label: 'Referral Amount', type: 'currency', sheet: 'Referral_Amount',
         required: f => isYes(f.referral), showIf: f => isYes(f.referral),
-        whenHidden: 0 },
+        whenHidden: 0, max: 1000000 },
 
       { name: 'bescom', label: 'Can we apply for DISCOM before TSV?', type: 'yesno',
         sheet: 'BESCOM', required: true },
@@ -784,7 +784,7 @@ export const PROJECT_SECTIONS = [
       { name: 'retentionAmount', label: 'What is the Retention Amount?', type: 'currency',
         sheet: 'Retention_Amount',
         required: f => isYes(f.retention), showIf: f => isYes(f.retention),
-        whenHidden: 0 },
+        whenHidden: 0, max: 1000000 },
 
       { name: 'retentionPeriod', label: 'What is the Retention period (in months, years)?',
         type: 'text', sheet: 'Retention_Period',
@@ -839,9 +839,9 @@ export const PROJECT_SECTIONS = [
         options: MODULE_BRANDS, required: true, optionsKey: 'Module_Brand' },
 
       { name: 'moduleWattage', label: 'Module Wattage (Wp)', type: 'number',
-        sheet: 'Module_Wattage', required: true, suffix: 'Wp' },
+        sheet: 'Module_Wattage', required: true, suffix: 'Wp', max: 5000 },
 
-      { name: 'moduleNo', label: 'No.of Modules', type: 'number', sheet: 'Module_No', required: true },
+      { name: 'moduleNo', label: 'No.of Modules', type: 'number', sheet: 'Module_No', required: true, max: 10000 },
 
       { name: 'roofMaterial', label: 'Roof Material', type: 'select', sheet: 'Roof_Material',
         options: ROOF_MATERIALS, required: true, optionsKey: 'Roof_Material' },
@@ -919,7 +919,7 @@ export const PROJECT_SECTIONS = [
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspYears', label: 'Inspection — for how many years?',
-        type: 'number', transient: true, width: 'quarter', suffix: 'yrs',
+        type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspStart', label: 'Inspection start date', type: 'date',
@@ -967,7 +967,7 @@ export const PROJECT_SECTIONS = [
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanYears', label: 'Cleaning — for how many years?',
-        type: 'number', transient: true, width: 'quarter', suffix: 'yrs',
+        type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanStart', label: 'Cleaning start date', type: 'date',
@@ -1176,6 +1176,19 @@ export function validateProject(form) {
   if (form.size && Number(form.size) <= 0) {
     errors.size = 'System size must be greater than zero';
   }
+
+  /*  Numeric ceilings declared as f.max on the field spec. */
+  for (const f of ALL_FIELDS) {
+    if (typeof f.max !== 'number') continue;
+    if (!isVisible(f, form)) continue;   // don't block on a hidden field's stale value
+    const v = form[f.name];
+    if (v === '' || v === null || v === undefined) continue;
+    const n = Number(v);
+    if (!Number.isNaN(n) && n > f.max) {
+      const text = typeof f.label === 'function' ? f.label(form) : String(f.label ?? f.name);
+      errors[f.name] = `${text.replace(/[:*]$/, '')} cannot exceed ${f.max.toLocaleString('en-IN')}`;
+    }
+  }
   /*  Only when one was actually entered — the required check above already
       handles a missing one, and this must not fire on a project whose GSTIN
       predates the rule and is merely being re-saved untouched.           */
@@ -1225,7 +1238,7 @@ export function toProjectPayload(form, extra = {}) {
 
           Divide on the way out, and only here — the form keeps showing the
           human number the user typed.                                      */
-      if (f.type === 'percent' && v !== '') v = v / 100;
+      if (f.type === 'percent' && v !== '') v = (Math.round(Number(v) * 10) / 10) / 100;
     }
     out[f.sheet] = v ?? '';
 

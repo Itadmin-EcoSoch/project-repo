@@ -128,6 +128,24 @@ export const textareaBase = {
     sanitize={false} opts out. Used for coordinates, which must keep their
     leading minus for southern latitudes, and for numeric inputs where the
     browser already restricts what can be typed.                            */
+/*  Group an integer/decimal string in the Indian system: 1,00,00,000. */
+export function indianComma(x) {
+  var s = String(x == null ? '' : x).replace(/,/g, '');
+  if (s === '') return '';
+  var neg = s.charAt(0) === '-'; if (neg) s = s.slice(1);
+  var parts = s.split('.');
+  var intp = (parts[0] || '').replace(/\D/g, '');
+  var dec  = parts.length > 1 ? parts[1].replace(/\D/g, '') : null;
+  if (intp === '') intp = '0';
+  var last3 = intp.slice(-3);
+  var rest  = intp.slice(0, -3);
+  if (rest) last3 = ',' + last3;
+  rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+  var out = rest + last3;
+  if (dec !== null) out += '.' + dec;
+  return (neg ? '-' : '') + out;
+}
+
 export function SInput({ value, onChange, type='text', placeholder, hasError, suffix, prefix,
                          step, autoFocus, maxLength, sanitize = true, multiline = false,
                          showCounter = false, onBlur, style:extra={} }) {

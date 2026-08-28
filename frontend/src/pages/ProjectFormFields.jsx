@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, toDateInput, isNewProject } from '../lib/projectFields';
-import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType } from './formKit';
+import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType, indianComma } from './formKit';
 import { maxLengthFor, TEXTAREA_MAX } from '../lib/fieldLimits';
 import FileField from './FileField';
 
@@ -129,7 +129,10 @@ function RadioGroup({ value, options = [], onChange, hasError, lockedTo = null }
   );
 }
 
-function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions) {
+/*  Keep at most one decimal place while typing a percentage. */
+const oneDecimal = s => String(s ?? '').replace(/(\.\d)\d+/, '$1');
+
+function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions, onFieldBlur) {
   const v   = form[f.name] ?? '';
 
   /*  Per-project option lists. The Project_Status choices depend on AMC
@@ -243,15 +246,19 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
 
     case 'number':
       return <SInput type="number" step={f.step} value={v} onChange={e => on(e.target.value)}
-                     placeholder={f.placeholder || '0'} suffix={f.suffix} hasError={bad} />;
+                     placeholder={f.placeholder || '0'} suffix={f.suffix} hasError={bad}
+                     onBlur={() => onFieldBlur?.(f)} />;
 
     case 'currency':
-      return <SInput type="number" value={v} onChange={e => on(e.target.value)}
-                     placeholder="0" prefix="₹" hasError={bad} />;
+      return <SInput type="text" sanitize={false} value={indianComma(v)}
+                     onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))}
+                     placeholder="0" prefix="₹" hasError={bad}
+                     onBlur={() => onFieldBlur?.(f)} />;
 
     case 'percent':
-      return <SInput type="number" step="0.01" value={v} onChange={e => on(e.target.value)}
-                     placeholder="0.00" suffix="%" hasError={bad} />;
+      return <SInput type="number" step="0.1" value={v} onChange={e => on(oneDecimal(e.target.value))}
+                     placeholder="0.0" suffix="%" hasError={bad}
+                     onBlur={() => onFieldBlur?.(f)} />;
 
         case 'date':
       /*  toDateInput here as well as in EditProject's loader — belt and
@@ -296,7 +303,8 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
           Billing Name, GSTIN, Referrer, Retention Period, Salesperson.     */
       return <SInput type={f.inputType || 'text'} value={v} onChange={e => on(e.target.value)}
                      maxLength={maxLengthFor(f)} showCounter={maxLengthFor(f) <= 100}
-                     placeholder={f.placeholder || ''} hasError={bad} />;
+                     placeholder={f.placeholder || ''} hasError={bad}
+                     onBlur={() => onFieldBlur?.(f)} />;
   }
 }
 
@@ -344,7 +352,7 @@ const widthOf = f => f.width || (f.type === 'textarea' || f.type === 'readonly' 
 
 export default function ProjectFormFields({ form, set, errors = {}, only = null, projectId = null,
                                             statusOptions = null, isAdmin = false,
-                                            dropdownOptions = {} }) {
+                                            dropdownOptions = {}, onFieldBlur = null }) {
 
   /*  forceValue — a field whose answer is dictated by other fields.
 
@@ -416,7 +424,7 @@ export default function ProjectFormFields({ form, set, errors = {}, only = null,
                      data-field-error={errors[f.name] ? 'true' : undefined}
                      className={`pf-w-${widthOf(f)}`}
                      required={isRequired(f, form)} error={errors[f.name]}>
-                {renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions)}
+                {renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions, onFieldBlur)}
                 {(() => {
                   /*  Resolve BEFORE testing. f.help may be a function whose
                       answer depends on the form — Payments_Done only explains

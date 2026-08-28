@@ -122,7 +122,7 @@ export default function EditProject() {
                 again and turn 12% into 0.12%.                             */
             (f.type === 'percent' && v !== '' && v !== null && v !== undefined
               && !Number.isNaN(Number(v)))
-              ? String(Number(v) * 100) :
+              ? String(Math.round(Number(v) * 1000) / 10) :
             ((v === undefined || v === null) ? '' : v);
           /*  The original filename, saved alongside the Drive path — see
               fileNameKey in lib/projectFields.js. Older rows saved before
@@ -406,7 +406,8 @@ export default function EditProject() {
 
       <ProjectFormFields form={form} set={set} errors={errors} projectId={id}
                          statusOptions={statusOptions} isAdmin={isAdmin}
-                         dropdownOptions={dropdownOptions} />
+                         dropdownOptions={dropdownOptions}
+                         onFieldBlur={(f) => { const e = validateProject(form); setErrors(prev => ({ ...prev, [f.name]: e[f.name] })); }} />
 
       {/*  Why the status list looks the way it does. Without this, a user who
            expects "Under SolarCare" and cannot find it has no way to discover
