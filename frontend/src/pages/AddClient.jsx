@@ -56,7 +56,7 @@ const MAP_LAYERS = [
   { id:'satellite', label:'Satellite', icon:'🛰️' },
 ];
 
-function LocationCard({ lat, lng, address, onChange }) {
+function LocationCard({ lat, lng, address, onChange, error }) {
   const [locating,  setLocating]  = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [mapLayer,  setMapLayer]  = useState('roadmap');
@@ -179,7 +179,8 @@ function LocationCard({ lat, lng, address, onChange }) {
       </div>
 
       <div style={{ padding:'13px 16px', borderBottom:`1px solid ${C.surface}` }}>
-        <label style={fieldLabel}>Coordinates</label>
+        <label style={fieldLabel}>Coordinates<span style={reqStar}>*</span></label>
+        {error && <p style={errMsg}><span>⚠</span>{error}</p>}
 
         {/* Quick paste — accepts "13.0686, 77.5913" copied from Google Maps */}
         <div style={{ marginBottom:10 }}>
@@ -434,6 +435,22 @@ export default function AddClient() {
 
   const set = (k,v) => { setForm(f=>({...f,[k]:v})); setErrors(e=>({...e,[k]:undefined})); };
 
+  /* Validate a single field on blur so the error appears as soon as focus leaves it. */
+  function validateField(k) {
+    switch (k) {
+      case 'name':          return !form.name.trim() ? 'Customer name is required' : undefined;
+      case 'address':       return !form.address.trim() ? 'Billing address is required' : undefined;
+      case 'region':        return !String(form.region||'').trim() ? 'Region is required' : undefined;
+      case 'clientIdentity':return !form.clientIdentity ? 'Please select a client identity' : undefined;
+      case 'typeOfClient':  return !form.typeOfClient ? 'Please choose Internal or External' : undefined;
+      case 'mobile': { const { dial, number } = splitPhone(form.mobile); return validatePhone(dial, number) || undefined; }
+      case 'email':         return (form.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) ? 'That does not look like an email address' : undefined;
+      case 'coordinates':   return !(form.lat && form.lng && !isNaN(parseFloat(form.lat)) && !isNaN(parseFloat(form.lng))) ? 'Site coordinates are required' : undefined;
+      default: return undefined;
+    }
+  }
+  const blurField = (k) => setErrors(e => ({ ...e, [k]: validateField(k) }));
+
   function validate() {
     const e={};
     if (!form.name.trim())    e.name         = 'Customer name is required';
@@ -441,6 +458,8 @@ export default function AddClient() {
     if (!form.clientIdentity) e.clientIdentity = 'Please select a client identity';
     if (!String(form.region || '').trim()) e.region = 'Region is required';
     if (!form.typeOfClient)   e.typeOfClient = 'Please choose Internal or External';
+    if (!(form.lat && form.lng && !isNaN(parseFloat(form.lat)) && !isNaN(parseFloat(form.lng))))
+      e.coordinates = 'Site coordinates are required — capture GPS, paste, or type them';
 
     /*  Checked against the chosen country, so an Indian number is held to the
         real rule — ten digits starting 6-9 — while an overseas one is only
@@ -470,7 +489,7 @@ export default function AddClient() {
       e.email = 'That does not look like an email address';
     }
 
-    setErrors(e); return !Object.keys(e).length;
+    setErrors(e); return e;
   }
 
   /*  ── NOTHING IS WRITTEN TO THE SHEET HERE ────────────────────────────────
@@ -489,7 +508,15 @@ export default function AddClient() {
       network call left in it. `saving` is kept only so the button cannot be
       double-clicked into two navigations.                                   */
   function submit() {
-    if (!validate()) return;
+    const errs = validate();
+    if (Object.keys(errs).length) {
+      const ORDER = ['name','address','mobile','email','region','clientIdentity','coordinates','typeOfClient'];
+      const first = ORDER.find(k => errs[k]);
+      if (first) setTimeout(() => {
+        document.getElementById('f-'+first)?.scrollIntoView({ behavior:'smooth', block:'center' });
+      }, 30);
+      return;
+    }
     setSaving(true);
 
     const latN = parseFloat(form.lat);
@@ -551,7 +578,7 @@ export default function AddClient() {
         icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
         title="Client Information">
 
-        <Field label="End Customer Name" required error={errors.name}>
+        <Field label="End Customer Name" required error={errors.name} id="f-name">
                     {/*  ── THE 100 CHARACTERS ARE SHARED, NOT SPLIT ──────────────────
                Name and tag are stored as ONE string in Client_Name, so they do
                have to share a budget. A fixed 70/30 split was the wrong way to
@@ -563,7 +590,7 @@ export default function AddClient() {
                shows the combined total, which is the number that actually
                reaches the sheet.                                           */}
           <div style={{ display:'grid', gridTemplateColumns:'1.6fr 1fr', gap:10 }}>
-            <SInput value={form.name} onChange={e=>set('name',e.target.value)}
+            <SInput value={form.name} onChange={e=>set('name',e.target.value)} onBlur={()=>blurField('name')}
                     placeholder="Enter full name"
                     maxLength={Math.max(1, TEXT_MAX - (form.nameTag.trim() ? form.nameTag.trim().length + 1 : 0))}
                     hasError={!!errors.name}/>
@@ -631,23 +658,23 @@ export default function AddClient() {
              "#22, Sector A, Ramaiah Reddy Colony, Marathahalli, Bangalore - 37"
              — does not fit legibly on one line, and this field also seeds the
              geocoder and gets copied to Site Address on the project form.  */}
-        <Field label="Client's Billing Address" required error={errors.address} showErrorText>
-          <STextarea value={form.address} onChange={e=>set('address',e.target.value)}
+        <Field label="Client's Billing Address" required error={errors.address} showErrorText id="f-address">
+          <STextarea value={form.address} onChange={e=>set('address',e.target.value)} onBlur={()=>blurField('address')}
                      placeholder="Full billing address" hasError={!!errors.address}/>
         </Field>
 
         <div style={{ ...fieldWrap, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                 <div>
+                 <div id="f-mobile">
             <label style={fieldLabel}>Mobile<span style={reqStar}>*</span></label>
-            <PhoneField value={form.mobile} onChange={v=>set('mobile',v)} hasError={!!errors.mobile}/>
+            <PhoneField value={form.mobile} onChange={v=>set('mobile',v)} hasError={!!errors.mobile} onBlur={()=>blurField('mobile')}/>
             {errors.mobile && <p style={errMsg}><span>⚠</span>{errors.mobile}</p>}
             <div style={{ fontSize:10, color:C.text3, marginTop:4 }}>
              
             </div>
           </div>
-          <div>
+          <div id="f-email">
             <label style={fieldLabel}>Email</label>
-            <SInput value={form.email} onChange={e=>set('email', sanitizeEmail(e.target.value))}
+            <SInput value={form.email} onChange={e=>set('email', sanitizeEmail(e.target.value))} onBlur={()=>blurField('email')}
                     type="email" placeholder="name@domain.com" maxLength={EMAIL_MAX}
                     sanitize={false} hasError={!!errors.email}/>
             {errors.email && <p style={errMsg}><span>⚠</span>{errors.email}</p>}
@@ -655,7 +682,7 @@ export default function AddClient() {
         </div>
 
         <div style={{ ...fieldWrap, display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-          <div>
+          <div id="f-region">
             <label style={fieldLabel}>Region<span style={reqStar}>*</span></label>
             {/*  SelectOrType, not a plain select: the eight AppSheet regions
                  cover most clients, but one outside them must still be
@@ -668,12 +695,12 @@ export default function AddClient() {
                           hasError={!!errors.region}/>
             {errors.region && <p style={errMsg}><span>⚠</span>{errors.region}</p>}
           </div>
-          <div>
+          <div id="f-clientIdentity">
             <label style={fieldLabel}>Client Identity<span style={reqStar}>*</span></label>
             {/*  Clients.Client_Identity in AppSheet — what KIND of customer
                  this is. Separate from the Internal/External radio below,
                  which is Client_Type.                                      */}
-            <SSelect value={form.clientIdentity} onChange={e=>set('clientIdentity',e.target.value)}
+            <SSelect value={form.clientIdentity} onChange={e=>set('clientIdentity',e.target.value)} onBlur={()=>blurField('clientIdentity')}
                      options={clientIdentityOptions} placeholder="Select…" hasError={!!errors.clientIdentity}/>
             {errors.clientIdentity && <p style={errMsg}><span>⚠</span>{errors.clientIdentity}</p>}
           </div>
@@ -685,14 +712,14 @@ export default function AddClient() {
       </Card>
 
       {/* Type of Client radio */}
-      <TypeOfClientCard value={form.typeOfClient} onChange={v=>set('typeOfClient',v)} error={errors.typeOfClient}/>
+      <div id="f-typeOfClient"><TypeOfClientCard value={form.typeOfClient} onChange={v=>set('typeOfClient',v)} error={errors.typeOfClient}/></div>
 
         </div>{/* /left pane */}
 
         {/* ── RIGHT pane: site location ── */}
         <div className="ac-col">
       {/* Location */}
-      <LocationCard lat={form.lat} lng={form.lng} address={form.address} onChange={(lat,lng)=>setForm(f=>({...f,lat,lng}))}/>
+      <div id="f-coordinates"><LocationCard lat={form.lat} lng={form.lng} address={form.address} error={errors.coordinates} onChange={(lat,lng)=>{ setForm(f=>({...f,lat,lng})); setErrors(e=>({...e,coordinates:undefined})); }}/></div>
         </div>{/* /right pane */}
       </div>{/* /ac-grid */}
 

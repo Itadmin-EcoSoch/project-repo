@@ -188,10 +188,10 @@ export function SInput({ value, onChange, type='text', placeholder, hasError, su
   );
 }
 
-export function SSelect({ value, onChange, options, hasError, placeholder, labels={} }) {
+export function SSelect({ value, onChange, options, hasError, placeholder, labels={}, onBlur }) {
   const [foc, setFoc] = useState(false);
   return (
-    <select value={value} onChange={onChange} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
+    <select value={value} onChange={onChange} onFocus={()=>setFoc(true)} onBlur={(e)=>{ setFoc(false); onBlur?.(e); }}
       style={{ ...selectBase, ...(foc?inputFocus:{}), ...(hasError?inputErr:{}) }}>
       {placeholder && <option value="">{placeholder}</option>}
       {options.map(o=><option key={o} value={o}>{labels[o] || o}</option>)}
@@ -202,7 +202,7 @@ export function SSelect({ value, onChange, options, hasError, placeholder, label
 /*  1000 characters by default. The counter only appears past 80% — a counter
     under every one of sixty fields is noise; one that shows up when you are
     running out is a warning.                                               */
-export function STextarea({ value, onChange, placeholder, hasError,
+export function STextarea({ value, onChange, placeholder, hasError, onBlur,
                             maxLength = TEXTAREA_MAX, showCounter = true }) {
   const [foc, setFoc] = useState(false);
 
@@ -220,7 +220,7 @@ export function STextarea({ value, onChange, placeholder, hasError,
       <textarea value={value} onChange={handle} placeholder={placeholder}
         maxLength={maxLength}
         data-error={hasError ? 'true' : undefined}
-        onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
+        onFocus={()=>setFoc(true)} onBlur={()=>{ setFoc(false); onBlur?.(); }}
         style={{ ...textareaBase, ...(foc?inputFocus:{}), ...(hasError?inputErr:{}) }}/>
       {count && (
         <div style={{ fontSize:10, marginTop:3, textAlign:'right',
@@ -515,7 +515,7 @@ export function SearchableSelect({
    set so it is never coerced to a number. That pair is exactly what
    was missing when mobiles turned into #ERROR!.
 ------------------------------------------------------------------------ */
-export function PhoneField({ value, onChange, hasError, disabled = false,
+export function PhoneField({ value, onChange, hasError, disabled = false, onBlur,
                              placeholder = '9876543210' }) {
   const parsed = splitPhone(value);
 
@@ -581,7 +581,7 @@ export function PhoneField({ value, onChange, hasError, disabled = false,
             maxLength={cap}
             placeholder={placeholder}
             onChange={e => changeNum(e.target.value)}
-            onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
+            onFocus={()=>setFoc(true)} onBlur={()=>{ setFoc(false); onBlur?.(); }}
             style={{ ...inputBase, ...(foc?inputFocus:{}), ...(hasError?inputErr:{}),
                      letterSpacing:'.02em' }}/>
         </div>
