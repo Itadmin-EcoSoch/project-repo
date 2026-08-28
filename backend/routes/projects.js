@@ -4,14 +4,14 @@ const express = require('express');
 const router  = express.Router();
 
 const db = require('../db/sheets');
-const { MAP, toApp, toSheet } = require('../lib/mapping');
+const { MAP, toApp, toSheet, splitGeo } = require('../lib/mapping');
 const { toSheetStatus, canonicalStatus,
         projectStatusOptions, isStatusAllowed } = require('../lib/status');
 const { isPaymentsDoneAllowed, paymentsDoneOptions,
         isPaymentsDoneVisible } = require('../lib/paymentsDone');
 const { buildChanges, sendChangeEmail } = require('../utils/mailer');
 const automations = require('../lib/automations');
-const { newProjectId, newClientId } = require('../lib/uniqueId');
+const { newProjectId, newClientId, newStatusLogId } = require('../lib/uniqueId');
 
 const GEO = 'GMap_Link';
 const asProject = r => toApp(MAP.projects, r, { geoCol: GEO });
@@ -21,21 +21,50 @@ const LIST_FIELDS = [
   'Project_ID','Project_Name','Client_Id','Client_Name','Site_Area','Project_Size',
   'Inverter_Type','Business_Model','Project_Type','Project_Sector','System_Type',
   'System_Category','Roof_Type','Order_Value','Margin','Proposal_Model','AMC_Type',
-  'Project_Status','Defaulted_Pct','Salesperson_Email','Client_Committment',
+  'Project_Status','Salesperson_Email','Client_Committment',
   'Obstacle_Removal','GMap_Link','Project_Region','Site_Address','Created_Date',
 ].join(',');
 
 /* Attach the nested clients{} object the React pages expect. */
-async function withClients(rows) {
+async function withClients(rows, opts = {}) {
+  /*  withAddress is OFF by default and ON only for the single-project fetch.
+
+      The edit form needs the client's billing address to work out whether
+      "billing address same as site?" was answered Yes — see EditProject.jsx.
+      The LIST endpoint does not: it would carry a full postal address on all
+      1,542 rows, for a question no list ever asks.                         */
+  const withAddress = opts.withAddress === true;
+
   const clients = await db.list('clients', {
-    fields: 'Client_Id,Client_Name,Client_Mobile,Client_Email,Client_Region,Client_Identity',
+      fields: 'Client_Id,Client_Name,Client_Mobile,Client_Email,Client_Region,Client_Identity,Client_Type' +
+            (withAddress ? ',Client_Address,Client_GMap_Location' : ''),
   });
   const byId = new Map(), byName = new Map();
   for (const c of clients.data) {
     const obj = {
       id: c.Client_Id, name: c.Client_Name, phone: c.Client_Mobile,
       email: c.Client_Email, region: c.Client_Region, client_identity: c.Client_Identity,
+      /*  Type of Client — Internal (EPC, I&C) or External (AMC). The edit form
+          needs it to decide whether Type of Project should offer anything but
+          AMC. Named type_of_client to match MAP.clients.
+
+          Cheap to carry: one short word per row, and the Clients tab is
+          already being read here for the name and phone anyway.          */
+      type_of_client: c.Client_Type,
     };
+    /*  Named billing_address to match MAP.clients, which is what every other
+        screen already reads. The old code looked for `address`, a key that has
+        never existed anywhere in this codebase.                             */
+        if (withAddress) {
+      obj.billing_address = c.Client_Address || '';
+      /*  Answering Yes on the edit form copies address, coordinates AND
+          region, exactly as Add Project does. The coordinates live inside
+          Client_GMap_Location as "lat, lng" and are split here so the form
+          does not have to know the storage format.                        */
+      const geo = splitGeo(c.Client_GMap_Location);
+      obj.lat = geo.lat;
+      obj.lng = geo.lng;
+    }
     byId.set(String(c.Client_Id), obj);
     byName.set(String(c.Client_Name || '').trim().toLowerCase(), obj);
   }
@@ -150,7 +179,7 @@ const ATTACHMENTS = [
     otherwise swallow "new-id" as if it were an id being looked up.         */
 router.get('/new-id', async (req, res, next) => {
   try {
-    const id = await newProjectId();
+    const id = await newProjectId({ fresh: false });
     res.json({ success: true, data: { id } });
   } catch (err) { next(err); }
 });
@@ -205,7 +234,7 @@ router.get('/:id', async (req, res, next) => {
     if (!row) return res.status(404).json({ success: false, error: 'Project not found' });
 
     const project = asProject(row);
-    const [withCli] = await withClients([project]);
+        const [withCli] = await withClients([project], { withAddress: true });
 
     // status history
     let logs = [];
@@ -227,9 +256,22 @@ router.get('/:id', async (req, res, next) => {
     try {
       /*  AMC_Status is now fetched too — the Project_Status Valid_If rules
           count ACTIVE contracts, so the status column is load-bearing.     */
+            /*  The extra columns are for the EDIT FORM, not for the status rules.
+
+          cleanVisits / cleanYears / cleanStart and their inspection twins are
+          transient: true in projectFields.js — no sheet column of their own —
+          so EditProject seeds them from these contracts. With only four
+          columns fetched, AMC_Frequency, AMC_Period_in_Years and
+          AMC_Start_Date were absent from the response and every AMC box on
+          the edit form opened blank.
+
+          These rows are returned RAW, not through toApp() — unlike amcTasks
+          below — so the client sees AMC_Frequency, not `frequency`.        */
       const c = await db.list('amc_contracts', {
         where: { Project_ID: String(project.id) },
-        fields: 'AMC_Id,AMC_Type,Project_ID,AMC_Status',
+        fields: 'AMC_Id,AMC_Type,Project_ID,AMC_Status,' +
+                'AMC_Frequency,AMC_Period_in_Years,AMC_Start_Date,AMC_End_Date,' +
+                'AMC_Contract_Files',
       });
       contracts = c.data;
       const ids = new Set(contracts.map(x => String(x.AMC_Id)));
@@ -285,7 +327,17 @@ router.get('/:id', async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        ...withCli, _raw: row, status_logs: logs, amc_tasks: amcTasks,
+              ...withCli, _raw: row, status_logs: logs, amc_tasks: amcTasks,
+        /*  contracts WAS FETCHED AND THEN THROWN AWAY. It was read above for
+            projectStatusOptions and never put in the response, so the edit
+            form's `p.contracts` was undefined, its seeding loop iterated an
+            empty array, and every AMC term box — visits per year, number of
+            years, start date — opened blank on a project that had a contract.
+
+            Worse than cosmetic: those boxes are the INPUTS that regenerate
+            the visit schedule on save, so pressing Save Changes rebuilt the
+            whole schedule from empty values.                              */
+        contracts,
         status_options: statusChoice.options,
         status_rule   : { rule: statusChoice.rule, reason: statusChoice.reason },
       },
@@ -337,11 +389,20 @@ router.post('/', async (req, res, next) => {
 
     const saved = await db.insert('projects', row);
 
-    await db.insert('status_log', {
-      Log_Id: await newStatusLogId(),
-      Project_ID: saved.Project_ID, Old_Status: '', New_Status: saved.Project_Status,
-      Changed_By: row.Created_By, Note: 'Created', Changed_At: new Date().toISOString(),
-    }).catch(() => {});
+        /*  Best effort, and it must STAY best effort. The trailing .catch() could
+        not catch a failure from `await newStatusLogId()`, because that runs
+        while building the ARGUMENT, before db.insert exists to attach a
+        .catch to. The project row was already written by then, so a failure
+        here returned a 500 on a save that had actually succeeded.          */
+    try {
+      await db.insert('status_log', {
+        Log_Id    : await newStatusLogId({ fresh: false }),
+        Project_ID: saved.Project_ID, Old_Status: '', New_Status: saved.Project_Status,
+        Changed_By: row.Created_By, Note: 'Created', Changed_At: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn(`[status_log] could not log creation of ${saved.Project_ID}: ${e.message}`);
+    }
 
     res.status(201).json({ success: true, data: asProject(saved) });
   } catch (err) { next(err); }
@@ -507,16 +568,22 @@ router.patch('/:id', async (req, res, next) => {
     const before = asProject(beforeRow);
     const [withCli] = await withClients([data]);
 
+        /*  db.update() has already committed by this point, so nothing in here
+        may be allowed to fail the response. See the matching block in POST. */
     if (patch.Project_Status && patch.Project_Status !== beforeRow.Project_Status) {
-      await db.insert('status_log', {
-      Log_Id: await newStatusLogId(),
-        Project_ID: req.params.id,
-        Old_Status: beforeRow.Project_Status || '',
-        New_Status: patch.Project_Status,
-        Changed_By: changed_by || 'app',
-        Note      : note || '',
-        Changed_At: new Date().toISOString(),
-      }).catch(() => {});
+      try {
+        await db.insert('status_log', {
+          Log_Id    : await newStatusLogId({ fresh: false }),
+          Project_ID: req.params.id,
+          Old_Status: beforeRow.Project_Status || '',
+          New_Status: patch.Project_Status,
+          Changed_By: changed_by || 'app',
+          Note      : note || '',
+          Changed_At: new Date().toISOString(),
+        });
+      } catch (e) {
+        console.warn(`[status_log] could not log status change on ${req.params.id}: ${e.message}`);
+      }
     }
 
     /*  Labels use the same wording as the New Order Form, so a change email
@@ -535,7 +602,7 @@ router.patch('/:id', async (req, res, next) => {
       order_value:'Order Value', ecosoch_margin_pct:'Margin %',
       proposal_model:'Proposal Model', salesperson_email:'Salesperson',
       commitment:'What have you committed to the client as a salesperson?',
-      status:'Current Project Status', defaulted_pct:'Payment Received %',
+      status:'Current Project Status',
       region:'Project Region', comments:'Project Comments',
       description:'Points specific to this Project',
       billing_name:'Billing Name', discom_name:'DISCOM Documentation Name',

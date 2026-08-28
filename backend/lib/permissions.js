@@ -163,6 +163,9 @@ function normalise(role) {
   return String(role || '').toLowerCase().replace(/[\s_\-.]+/g, '');
 }
 
+/** Roles we have already complained about — see the fallback in tierOf. */
+const WARNED_ROLES = new Set();
+
 /** Any role string → its tier. Unknown roles are STAFF, never admin. */
 function tierOf(role) {
   const key = normalise(role);
@@ -170,12 +173,34 @@ function tierOf(role) {
   if (Object.prototype.hasOwnProperty.call(ROLE_TIERS, key)) return ROLE_TIERS[key];
 
   /*  A title we have not seen before, e.g. "Senior Sales Coordinator".
-      Match on the strongest word it contains so a new job title behaves
-      sensibly instead of silently dropping to the bottom — but note that
-      "admin" only ever arrives here from a role someone typed into the
-      Users tab, which is already an admin-controlled surface. */
+
+      ── CAPPED AT MANAGER, DELIBERATELY ─────────────────────────────────
+      This used to return the matched tier outright, which handed out full
+      Admin on a substring. normalise() strips spaces, so:
+
+          "Sales Admin"     -> "salesadmin"     .includes('admin') -> ADMIN
+          "Admin Assistant" -> "adminassistant" .includes('admin') -> ADMIN
+
+      Both would have been granted delete plus Team-member management from a
+      job title that means the opposite.
+
+      Admin and Super Admin are now reachable ONLY by exact match above. A
+      guessed title tops out at MANAGER — every page, no delete — which is
+      the safe direction to fail in. If a real admin lands here, add their
+      exact title to ROLE_TIERS; the warning below tells you when.       */
   for (const [name, tier] of Object.entries(ROLE_TIERS)) {
-    if (key.includes(name)) return tier;
+    if (!key.includes(name)) continue;
+    const granted = Math.min(tier, TIER.MANAGER);
+    if (tier > granted && !WARNED_ROLES.has(key)) {
+      WARNED_ROLES.add(key);
+      console.warn(
+        `[permissions] role "${role}" is not in ROLE_TIERS. It looks like ` +
+        `"${name}" (tier ${tier}), but a guessed title is capped at MANAGER, ` +
+        `so it was granted tier ${granted}. Add "${key}" to ROLE_TIERS in ` +
+        `backend/lib/permissions.js if this account really should be tier ${tier}.`
+      );
+    }
+    return granted;
   }
   return TIER.STAFF;
 }

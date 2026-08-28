@@ -230,7 +230,7 @@ async function botSolarCareEmail(before, after) {
       `</tr>`).join('') +
     `</table>` +
     `<p style="margin-top:14px;font-size:11.5px;color:#7b878d">` +
-    `Sent automatically by EcoFlow — EcoSoch Project Repository.</p></div>`;
+    `Sent automatically by Project Repository — EcoSoch Project Repository.</p></div>`;
 
   const text = `${name} has been handed over to SolarCare.\n\n` +
     rows.map(([k, v]) => `${k}: ${v}`).join('\n');
@@ -313,7 +313,7 @@ async function botPaymentPromotion(before, after) {
 
   await db.update('projects', pid, { Project_Status: d.to });
   await db.insert('status_log', {
-    Log_Id    : await newStatusLogId(),
+    Log_Id    : await newStatusLogId({ fresh: false }),
     Project_ID: pid,
     Old_Status: after.Project_Status || '',
     New_Status: d.to,

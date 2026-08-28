@@ -1,7 +1,7 @@
 /*  backend/lib/newOrderTemplate.js
     ----------------------------------------------------------------------------
     Rebuilds the AppSheet "Send email to All after project is added" body
-    template in Node, so EcoFlow can send the same New Order Form the team has
+    template in Node, so Project Repository can send the same New Order Form the team has
     been receiving for years.
 
     Reference: New Order - Naveen Mudgil_Vaishnavi Commune_Subsidy_6.82kWp_String
@@ -399,7 +399,7 @@ function buildSubject(project = {}, client = {}, opts = {}) {
  * @param {object} [args.options]
  * @param {boolean} [args.options.hideEmptyRows=false]  drop blank rows
  *                  Default false to match AppSheet, which prints every row.
- * @param {string}  [args.options.appUrl]  adds an "Open in EcoFlow" link
+ * @param {string}  [args.options.appUrl]  adds an "Open in Project Repository" link
  * @returns {{subject:string, html:string, text:string}}
  */
 function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '', options = {} }) {
@@ -415,7 +415,7 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
       `<tr><td style="background:#F58220;border-radius:3px;padding:10px 20px">` +
       `<a href="${esc(opts.appUrl)}/projects/${encodeURIComponent(project.Project_ID)}" ${NEW_TAB} ` +
       `style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none">` +
-      `Open this project in EcoFlow</a></td></tr></table>`
+      `Open this project in Project Repository</a></td></tr></table>`
     : '';
 
   const html =
@@ -442,7 +442,7 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
       `</td></tr>` +
 
       `<tr><td style="${S.footer}">` +
-        `Sent automatically by EcoFlow — EcoSoch Project Repository. ` +
+        `Sent automatically by Project Repository — EcoSoch Project Repository. ` +
         `Please raise any correction against the project record rather than replying.` +
       `</td></tr>` +
 
@@ -452,7 +452,7 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
     `${headline}\n\n\n` +
     sectionText('Client Details',  CLIENT_ROWS,  client,  files, opts) + '\n' +
     sectionText('Project Details', PROJECT_ROWS, project, files, opts) + '\n' +
-    `Sent from EcoFlow — EcoSoch Project Repository\n`;
+    `Sent from Project Repository — EcoSoch Project Repository\n`;
 
   return { subject, html, text };
 }
@@ -536,7 +536,7 @@ function buildProjectUpdateEmail({ client = {}, project = {}, changes = [],
       `<tr><td style="background:#F58220;border-radius:3px;padding:10px 20px">` +
       `<a href="${esc(opts.appUrl)}/projects/${encodeURIComponent(project.Project_ID)}" ${NEW_TAB} ` +
       `style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#ffffff;text-decoration:none">` +
-      `Open this project in EcoFlow</a></td></tr></table>`
+      `Open this project in Project Repository</a></td></tr></table>`
     : '';
 
   const html =
@@ -563,14 +563,14 @@ function buildProjectUpdateEmail({ client = {}, project = {}, changes = [],
         `<p style="${S.para};font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#7b878d">` +
         `Client: ${esc(client.Client_Name || project.Client_Name || '—')} · Updated ${esc(when)}</p>` +
       `</td></tr>` +
-      `<tr><td style="${S.footer}">Sent from EcoFlow — EcoSoch Project Repository</td></tr>` +
+      `<tr><td style="${S.footer}">Sent from Project Repository — EcoSoch Project Repository</td></tr>` +
     `</table></td></tr></table></body></html>`;
 
   const text =
     `${headline}\n\n` +
     changes.map(c => `${c.label}\n  before: ${c.from ?? '—'}\n  after : ${c.to ?? '—'}\n`).join('\n') +
     `\nClient: ${client.Client_Name || project.Client_Name || '—'}\nUpdated ${when}\n\n` +
-    `Sent from EcoFlow — EcoSoch Project Repository\n`;
+    `Sent from Project Repository — EcoSoch Project Repository\n`;
 
   return { subject, html, text };
 }

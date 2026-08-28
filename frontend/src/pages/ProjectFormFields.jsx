@@ -12,7 +12,7 @@
 --------------------------------------------------------------------------- */
 
 import { useState, useEffect, useRef } from 'react';
-import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, fileNameKey, toDateInput } from '../lib/projectFields';
+import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, toDateInput } from '../lib/projectFields';
 import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType } from './formKit';
 import { maxLengthFor, TEXTAREA_MAX } from '../lib/fieldLimits';
 import FileField from './FileField';
@@ -143,11 +143,17 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
       currentValue is passed through too, so a value already saved on this
       project is never silently dropped even if an admin later removes it
       from the managed list.                                                */
+  /*  f.options may be a FUNCTION of the form, not just an array — see
+      projType, whose list collapses to ['AMC'] for an External client. Resolve
+      it before anything else looks at it, so mergeOptions and the <select>
+      both receive a real array.                                          */
+  const baseOpts = typeof f.options === 'function' ? f.options(form) : f.options;
+
   const opts = (f.dynamicOptions === 'status' && Array.isArray(statusOptions) && statusOptions.length)
     ? statusOptions
     : f.optionsKey
-      ? mergeOptions(f.options, dropdownOptions?.[f.optionsKey], v)
-      : f.options;
+      ? mergeOptions(baseOpts, dropdownOptions?.[f.optionsKey], v)
+      : baseOpts;
   const err = errors[f.name];
   const bad = Boolean(err);
   const on  = val => set(f.name, val);
@@ -267,8 +273,8 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
                         column={f.uploadColumn || f.sheet || f.name}
                         projectId={projectId} hasError={bad}
                         maxSizeMB={f.maxSizeMB}
-                        displayName={f.sheet ? form[fileNameKey(f)] : undefined}
-                        onNameChange={f.sheet ? (name => set(fileNameKey(f), name)) : undefined} />;
+                        />;
+                        
 
         default:
       /*  100 characters and the shared character rule, for every text box on

@@ -338,7 +338,7 @@ export default function ProjectsMap() {
                   ['Status',  statusLabel(selected.status)],
                   ['Size',    selected.size_kwp ? `${selected.size_kwp} kWp` : '—'],
                   ['Type',    selected.project_type || 'EPC'],
-                  ['Scheme',  selected.scheme || '—'],
+                  ['Business Model',  selected.scheme || '—'],
                   ['AMC',     selected.amc_type && selected.amc_type !== 'None' ? selected.amc_type : 'No AMC'],
                   ['Area',    selected.area || '—'],
                   ['Address', selected.site_address || '—'],

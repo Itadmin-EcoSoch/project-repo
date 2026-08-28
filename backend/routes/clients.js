@@ -179,7 +179,7 @@ router.get('/:id', async (req, res, next) => {
 
     const all = await db.list('projects', {
       fields: 'Project_ID,Project_Name,Client_Id,Client_Name,Site_Area,Project_Size,' +
-              'Inverter_Type,Business_Model,Project_Status,Defaulted_Pct,Order_Value,' +
+                            'Inverter_Type,Business_Model,Project_Status,Order_Value,' +
               'AMC_Type,Created_Date',
       sort: 'Project_ID', order: 'desc',
     });
@@ -239,7 +239,6 @@ router.post('/', async (req, res, next) => {
         checked against every Client_Id already in the sheet, matching the
         AppSheet UNIQUEID() shape the Clients tab has always used.           */
     row.Client_Id = await newClientId();
-    row.Created_By = req.body.changed_by || 'app';
 
     const saved = await db.insert('clients', row);
     res.status(201).json({ success: true, data: asClient(saved) });
@@ -253,9 +252,7 @@ router.patch('/:id', async (req, res, next) => {
     if (!beforeRow) return res.status(404).json({ success: false, error: 'Client not found' });
 
     const patch = toSheet(MAP.clients, req.body, { geoCol: GEO });
-    delete patch.Client_Id;
-    delete patch.Created_Date;
-    patch.Last_Updated_By = req.body.changed_by || 'app';
+      delete patch.Client_Id;
 
     const saved  = await db.update('clients', req.params.id, patch);
     const data   = asClient(saved);

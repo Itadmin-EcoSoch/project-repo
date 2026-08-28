@@ -135,9 +135,6 @@ router.post('/google', async (req, res) => {
         User_Name   : g.name || g.email.split('@')[0],
         User_Role   : DEFAULT_ROLE,
         Department  : 'All',
-        User_Status : 'Active',
-        Created_By  : 'Google sign-in',
-        Created_Date: new Date().toISOString(),
       };
       /*  A failure writing the row must NOT block the sign-in. If Apps Script
           is slow or the Users tab is briefly locked, the person still gets in
@@ -160,7 +157,7 @@ router.post('/google', async (req, res) => {
       const fixes = {};
       if (!String(row.User_Role   || '').trim()) fixes.User_Role   = DEFAULT_ROLE;
       if (!String(row.User_Name   || '').trim()) fixes.User_Name   = g.name || g.email.split('@')[0];
-      if (!String(row.User_Status || '').trim()) fixes.User_Status = 'Active';
+      
 
       if (Object.keys(fixes).length) {
         try {
@@ -176,17 +173,6 @@ router.post('/google', async (req, res) => {
 
     const u = toApp(MAP.users, row);
 
-    /* ── gate 3: still employed? ──────────────────────────────────────────
-       This is how you remove somebody's access: set User_Status to Inactive in
-       the Users tab rather than deleting the row, and they are refused here
-       and on their next page load.                                        */
-    if (u.status && String(u.status).toLowerCase() === 'inactive') {
-      return res.status(403).json({
-        success: false,
-        error: 'This account has been deactivated. Contact an admin.',
-        code: 'INACTIVE',
-      });
-    }
 
     const role = u.role || DEFAULT_ROLE;
     const user = {

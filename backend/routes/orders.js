@@ -22,7 +22,7 @@ router.post('/', async (req, res, next) => {
       client_type, client_id,
       client: clientData = {},
       project: projectData = {},
-      status, defaulted_pct, submitted_by,
+      status, submitted_by,
     } = req.body;
 
     if (client_type === 'new' && !String(clientData.name || '').trim()) {
@@ -44,7 +44,13 @@ router.post('/', async (req, res, next) => {
     /*  Client_Id is minted here, in Node — see lib/uniqueId.js. Only needed
         when this order creates a brand-new client; an existing client already
         has one.                                                             */
-    clientRow.Client_Id = client_type === 'existing' ? undefined : await newClientId();
+    /*  { fresh: false } — a live read here is a full uncached download of all
+        1,502 Clients rows (754 KB) through the serialised queue, before the
+        write has even started. The cache is at most SHEETS_CACHE_TTL old, the
+        keyspace is 62^8, and createOrder_ in Code.gs is inside a script lock
+        — so a duplicate would need the same id minted twice within one cache
+        window out of 218 trillion.                                        */
+    clientRow.Client_Id = client_type === 'existing' ? undefined : await newClientId({ fresh: false });
     if (!clientRow.Client_Id) delete clientRow.Client_Id;
 
     const projectRow = toSheet(MAP.projects, {
@@ -57,7 +63,6 @@ router.post('/', async (req, res, next) => {
       amc_type       : projectData.amc_type        || 'None',
       obstacles      : projectData.obstacles       || 'NO',
       status         : toSheetStatus(status)       || 'Active',
-      defaulted_pct  : isDefaulted(status) ? defaulted_pct : null,
     }, { geoCol: 'GMap_Link' });
     /*  Project_ID: use one already minted via GET /api/projects/new-id if the
         caller supplied a valid one — that's what keeps file uploads (which
@@ -88,8 +93,18 @@ router.post('/', async (req, res, next) => {
     /*  AppSheet bot: a new EPC or I&C project marks its client Internal.
         Fire-and-forget so a slow client write never delays the response. */
     if (out?.project) {
-      automations.onProjectCreated(out.project)
-        .catch(e => console.error('[automation] create:', e.message));
+      /*  Deliberately deferred. This is fire-and-forget for the RESPONSE, but
+          its sheet write still goes into the foreground tier of the queue in
+          db/sheets.js — so it lands ahead of the AMC setup calls the user is
+          actually waiting on. setImmediate lets the response go out first;
+          the one-second delay keeps it behind the AMC batch too.
+
+          Marking the client Internal is not time-critical. Nothing reads it
+          until someone opens that client's page.                          */
+      setTimeout(() => {
+        automations.onProjectCreated(out.project)
+          .catch(e => console.error('[automation] create:', e.message));
+      }, 1000);
     }
 
     res.status(201).json({

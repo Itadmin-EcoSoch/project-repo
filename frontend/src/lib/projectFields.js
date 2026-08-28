@@ -86,6 +86,34 @@ export function toDateInput(v) {
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
+
+/**
+ * Any truthy/falsy the sheet might hold  ->  'Yes' | 'No' | ''.
+ *
+ * AMC_Provided, Payments_Done, Subsidy, Retention, Referral and
+ * Is_Commissioned are REAL BOOLEANS in the sheet — Google renders them as TRUE
+ * and FALSE. The YesNo toggle in ProjectFormFields.jsx compares
+ *
+ *     String(value).trim().toLowerCase() === 'yes'
+ *
+ * and String(true) is "true", so a project with AMC_Provided = TRUE showed
+ * NEITHER button selected. Same failure as the dates: the value was right, the
+ * shape was not.
+ *
+ * Returns '' for anything that is not a clean yes/no on purpose.
+ * Bill_Available and GST_Available also carry "Yet to receive from customer"
+ * and "No. Have to ask customer to send the bill photo" — those are select
+ * fields, not toggles, and must pass through untouched.
+ */
+export function toYesNo(v) {
+  if (v === true)  return 'Yes';
+  if (v === false) return 'No';
+  const s = String(v ?? '').trim().toLowerCase();
+  if (!s) return '';
+  if (s === 'yes' || s === 'y' || s === 'true'  || s === '1') return 'Yes';
+  if (s === 'no'  || s === 'n' || s === 'false' || s === '0') return 'No';
+  return '';
+}
 export const YES_NO = ['Yes', 'No'];
 
 /*  'Ad-hoc Maintenance' is on 13 live projects (426867, 447960, 406409 …) but
@@ -120,6 +148,20 @@ export const BILL_AVAILABLE = [
   'Not applicable',
 ];
 
+/*  These two mirror what is ALREADY in the sheet. GST_Available was offered as
+    a plain Yes/No, but 52 rows read "Yet to receive from customer" — a real
+    answer the form could not express, so anyone in that position had to pick
+    a wrong one.                                                            */
+export const GST_AVAILABLE = [
+  'Yes',
+  'No',
+  'Yet to receive from customer',
+];
+
+export const PO_AVAILABLE = [
+  'Yes',
+  'No, yet to receive',
+];
 export const REGIONS = [
   'Bangalore', 'Rest of Karnataka', 'Telangana', 'TamilNadu',
   'Kerala', 'Andhra Pradesh', 'Maharashtra', 'Rest of India',
@@ -297,7 +339,7 @@ function amcEndDatePreview(startVal, frequencyVal, yearsVal) {
         2024-08-19 + 2 years -> 2026-08-19, covered through that whole day.
         29 Feb + 1 year clamps to 28 Feb rather than rolling into March.
 
-    Used for Workmanship Warranty End Date \u2014 kept as a real, saved field
+    Used for Warranty End Date \u2014 kept as a real, saved field
     (not a preview like the AMC one above) because SolarCare.gs reads
     Warranty_End_Date straight off the sheet; if this were never written, the
     nightly job would fall back to its own fixed default period instead of
@@ -314,7 +356,7 @@ function addYearsSameDay(startVal, yearsVal) {
 
 /* ── the form ────────────────────────────────────────────────────────── */
 
-/** EPC and I&C are the ones we installed, so only they carry workmanship. */
+/** EPC and I&C are the ones we installed, so only they carry warranty. */
 export const isInstalledByUs = f =>
   ['EPC', 'I&C'].includes(String(f?.projType ?? '').trim().toUpperCase());
 
@@ -323,11 +365,11 @@ export const isInstalledByUs = f =>
     Warranty_Period / Warranty_Status), labelled for what it actually is on
     this project:
 
-        EPC or I&C  ->  "Workmanship Warranty ..."   we installed it
+        EPC or I&C  ->  "Warranty ..."   we installed it
         AMC         ->  "AMC Warranty ..."           outside customer
         anything else -> "Warranty ..."
 
-    This is why there is no second set of Workmanship_* boxes any more. The
+    This is why there is no second set of Warranty_* boxes any more. The
     period field already takes any number of years, so a separate pair of
     dates only created two places to record one fact.                      */
 
@@ -338,14 +380,14 @@ const projTypeOf = f => String(f?.projType ?? '').trim().toUpperCase();
     its own dates), and Consultancy, Retail and Ad-hoc Maintenance have no
     ongoing cover at all. So the whole section is hidden for them rather than
     offering boxes that should never be filled.                             */
-export const isWorkmanshipProject = f => {
+export const isWarrantyProject = f => {
   const t = projTypeOf(f);
   return t === 'EPC' || t === 'I&C';
 };
 
 /*  WHEN DO THE WARRANTY/COMMISSIONING FIELDS SHOW, AND WHEN ARE THEY REQUIRED?
 
-    isWorkmanshipProject already narrows this whole section to EPC/I&C — AMC
+    isWarrantyProject already narrows this whole section to EPC/I&C — AMC
     and everything else never reach it at all, and get their own dates inside
     the AMC (Solar Care) section instead (Inspection/Cleaning start dates,
     already required there via wantsInspection/wantsCleaning).
@@ -362,7 +404,8 @@ export const isWorkmanshipProject = f => {
             Commissioned Date, Warranty Period, Warranty Start/End Date and
             Warranty Status all appear — and all become mandatory, because
             you would not answer Yes without already knowing them.         */
-export const warrantyFieldsVisible = f => isWorkmanshipProject(f) && isYes(f.isCommissioned);
+export const warrantyFieldsVisible = f =>
+  !isNewProject(f) && isWarrantyProject(f) && isYes(f.isCommissioned);
 export const warrantyFieldsRequired = warrantyFieldsVisible;
 
 /*  Add form or Edit form?
@@ -372,6 +415,19 @@ export const warrantyFieldsRequired = warrantyFieldsVisible;
     the form from the sheet row, where a transient field has no column and so
     comes back blank. No page needs to pass a flag for this to work.        */
 export const isNewProject = f => String(f?.isNew ?? '') === 'yes';
+
+/*  Is this an External (AMC) client?
+
+    Type of Client is answered on the Add Client screen — Internal (EPC, I&C)
+    or External (AMC) — and it already decides what kind of work this is.
+    Asking "Type of Project" again on the very next screen, with all six
+    options open, invites a contradiction: an External client with an EPC
+    project is not a thing, and nothing downstream would catch it.
+
+    `clientType` is a hidden transient field. AddProject seeds it from the
+    client record; EditProject leaves it blank, because on an existing project
+    the saved Project_Type is the truth and must stay editable.            */
+export const isExternalClient = f => String(f?.clientType ?? '').trim().toLowerCase() === 'external';
 
 /*  Merges a field's static base list with whatever an Admin has added through
     the Admin screen (frontend/src/pages/AdminDropdowns.jsx), for fields
@@ -415,6 +471,12 @@ export const PROJECT_SECTIONS = [
       { name: 'isNew', label: '', type: 'text', transient: true,
         default: 'yes', showIf: () => false },
 
+      /*  Hidden marker carrying Clients.Client_Type onto the project form.
+          Seeded by AddProject from the client being added to. See
+          isExternalClient above and the projType rule below.             */
+      { name: 'clientType', label: '', type: 'text', transient: true,
+        default: '', showIf: () => false },
+
       { name: 'projectName', label: 'Project Name', type: 'readonly', sheet: 'Project_Name',
         help: 'Built automatically from client, tags, size and inverter type.' },
 
@@ -435,11 +497,24 @@ export const PROJECT_SECTIONS = [
       { name: 'size', label: 'Project Size (in kWp)', type: 'number', sheet: 'Project_Size',
         required: true, step: '0.001', suffix: 'kWp' },
 
+      /*  AMC ONLY FOR AN EXTERNAL CLIENT.
+
+          The Add Client screen already asked Internal (EPC, I&C) vs External
+          (AMC). For External the answer here is decided, so the list collapses
+          to the single valid option rather than offering five that would
+          contradict what was just chosen. AddProject also pre-selects it, so
+          in practice this field is answered before it is ever seen.
+
+          Internal keeps the full list: EPC and I&C are both Internal, and
+          Consultancy / Retail / Ad-hoc are genuinely open choices.
+
+          On the EDIT form clientType is blank, so the full list comes back —
+          an existing project's saved type must stay editable.           */
       { name: 'projType', label: 'Type of Project:', type: 'select', sheet: 'Project_Type',
-        options: PROJECT_TYPES, required: true,
+        options: f => (isExternalClient(f) ? ['AMC'] : PROJECT_TYPES), required: true,
         /*  "+ Add a project type not on the list" is gone. It changed what
             every downstream rule in this file keys off (isAmcProject,
-            isWorkmanshipProject, warrantyFieldsVisible, the AMC block, …), so
+            isWarrantyProject, warrantyFieldsVisible, the AMC block, …), so
             a mistyped or made-up type here had knock-on effects across the
             whole form, and it was never governed — anyone could type
             anything. New types are now added once, centrally, from the Admin
@@ -489,10 +564,19 @@ export const PROJECT_SECTIONS = [
           The status test is EXACT, not a "Defaulted" prefix. Ticket-payment
           and AMC-payment defaults must not force this to No — only a project
           -payment default does. See backend/lib/paymentsDone.js.          */
+      /*  whenHidden: 'No' — see toProjectPayload.
+
+          Payments_Done is a real checkbox column (957 TRUE, 47 FALSE). The
+          question only shows for two statuses, and a hidden field is sent as
+          '' — so every project created at status Active left the cell BLANK,
+          which is neither true nor false and breaks the payment rules that
+          read it. Not-yet-asked means not-yet-paid, so No is the honest
+          value and keeps the column boolean the whole way down.          */
       { name: 'paymentsDone', type: 'yesno', sheet: 'Payments_Done',
         label: 'Has client cleared the required project payments?',
         showIf  : paymentsDoneVisible,
         required: paymentsDoneVisible,
+        whenHidden: 'No',
         lockedTo: form => {
           const st = String(form?.status || '').trim();
           if (st === 'Defaulted - Project Payment') return 'No';
@@ -536,14 +620,32 @@ export const PROJECT_SECTIONS = [
         required: f => isNo(f.billingSame), showIf: f => isNo(f.billingSame) },
 
       { name: 'gstAvailable', label: 'Is there GSTIN Number?', type: 'select',
-        sheet: 'GST_Available', options: YES_NO, required: true },
+        sheet: 'GST_Available', options: GST_AVAILABLE, required: true,
+        optionsKey: 'GST_Available' },
 
+      /*  A GSTIN is exactly 15 characters — 2 state digits, a 10-character
+          PAN, an entity digit, a literal Z, and a checksum. maxLength stops
+          the box accepting a 39-character run of keyboard mashing; the
+          pattern check in validateProject catches a paste that outran it.  */
       { name: 'gstNumber', label: 'GSTIN Number:', type: 'text', sheet: 'GST_Number',
         required: f => isYes(f.gstAvailable), showIf: f => isYes(f.gstAvailable),
+        maxLength: 15,
         help: '15 characters, e.g. 29ABCDE1234F1Z5' },
 
+      /*  PO_Available had NO FIELD AT ALL. The form collected the PO file and
+          nothing ever wrote the column, so it stayed blank on every project
+          the app created while 813 older rows read "Yes".
+
+          Modelled on billAvailable / billFile directly above: the question
+          first, the attachment only when the answer is Yes. A PO that has not
+          arrived yet is a real state and now has somewhere to live.       */
+      { name: 'poAvailable', label: 'Purchase Order Available?', type: 'select',
+        sheet: 'PO_Available', options: PO_AVAILABLE, required: true,
+        optionsKey: 'PO_Available' },
+
       { name: 'poFile', label: "Attach Purchase Order (with client's signature):", type: 'file',
-        sheet: 'PO_File', required: true },
+        sheet: 'PO_File',
+        required: f => isYes(f.poAvailable), showIf: f => isYes(f.poAvailable) },
     ],
   },
 
@@ -632,11 +734,19 @@ export const PROJECT_SECTIONS = [
       { name: 'referral', label: 'Is this a referral project?', type: 'yesno',
         sheet: 'Referral', required: true },
 
+      /*  whenHidden — what to store when the gate above these is answered No.
+
+          A hidden field is sent as '' by toProjectPayload, which left these
+          cells BLANK. The sheet's own convention across 376 legacy rows is
+          'NA' for the text ones and 0 for the amounts, never blank, and the
+          reports that read these columns count on it.                     */
       { name: 'referrerName', label: 'Name of Referrer', type: 'text', sheet: 'Referrer_Name',
-        required: f => isYes(f.referral), showIf: f => isYes(f.referral) },
+        required: f => isYes(f.referral), showIf: f => isYes(f.referral),
+        whenHidden: 'NA' },
 
       { name: 'referralAmount', label: 'Referral Amount', type: 'currency', sheet: 'Referral_Amount',
-        required: f => isYes(f.referral), showIf: f => isYes(f.referral) },
+        required: f => isYes(f.referral), showIf: f => isYes(f.referral),
+        whenHidden: 0 },
 
       { name: 'bescom', label: 'Can we apply for DISCOM before TSV?', type: 'yesno',
         sheet: 'BESCOM', required: true },
@@ -645,10 +755,17 @@ export const PROJECT_SECTIONS = [
         sheet: 'Capacity_Finalised', required: true },
 
       /*  The one rule that fires on No rather than Yes: if the size is NOT
-          finalised, we need to know whether a site visit will settle it.    */
+          finalised, we need to know whether a site visit will settle it.
+
+          whenHidden: 'No' -> FALSE. Hidden means the size IS finalised, so
+          no site visit is needed to finalise it — a real answer, not an
+          absence of one. Legacy rows leave this blank when the question did
+          not apply; FALSE says the same thing and keeps the column boolean
+          the whole way down.                                              */
       { name: 'tsvRequired', label: 'Is then a TSV required to finalise the system size?',
         type: 'yesno', sheet: 'TSV_Required',
-        required: f => isNo(f.capacityFinalised), showIf: f => isNo(f.capacityFinalised) },
+        required: f => isNo(f.capacityFinalised), showIf: f => isNo(f.capacityFinalised),
+        whenHidden: 'No' },
 
       { name: 'subsidy', label: 'Is this a subsidy project?', type: 'yesno',
         sheet: 'Subsidy', required: true },
@@ -658,18 +775,21 @@ export const PROJECT_SECTIONS = [
 
       { name: 'monitoringFreq', label: 'What is the monitoring frequency?', type: 'select',
         sheet: 'Monitoring_Frequency', options: MONITORING_FREQ, optionsKey: 'Monitoring_Frequency',
-        required: f => isYes(f.monitoring), showIf: f => isYes(f.monitoring) },
+        required: f => isYes(f.monitoring), showIf: f => isYes(f.monitoring),
+        whenHidden: 'NA' },
 
       { name: 'retention', label: 'Is there any retention amount for this project?',
         type: 'yesno', sheet: 'Retention', required: true },
 
       { name: 'retentionAmount', label: 'What is the Retention Amount?', type: 'currency',
         sheet: 'Retention_Amount',
-        required: f => isYes(f.retention), showIf: f => isYes(f.retention) },
+        required: f => isYes(f.retention), showIf: f => isYes(f.retention),
+        whenHidden: 0 },
 
       { name: 'retentionPeriod', label: 'What is the Retention period (in months, years)?',
         type: 'text', sheet: 'Retention_Period',
-        required: f => isYes(f.retention), showIf: f => isYes(f.retention) },
+        required: f => isYes(f.retention), showIf: f => isYes(f.retention),
+        whenHidden: 'NA' },
     ],
   },
 
@@ -894,7 +1014,7 @@ export const PROJECT_SECTIONS = [
 
   {
     id: 'warranty',
-    title: 'Commissioning & Workmanship Warranty',
+    title: 'Commissioning & Warranty',
     icon: '🛡️',
     fields: [
       /*  The gate. Locked to No on a new, not-yet-saved project — matching
@@ -905,14 +1025,22 @@ export const PROJECT_SECTIONS = [
           exists and will open up, not that it's missing. Once the project
           has been saved once, both options become selectable and answering
           Yes reveals the four fields below and makes them mandatory.       */
+            /*  TRANSIENT — there is no Is_Commissioned column any more.
+
+          It held 3 rows of 1,720, all of them "No", while Commissioned_Date
+          held 651. A date and a yes/no meaning "is that date filled in?" are
+          the same fact stored twice, and the pair can contradict each other.
+          The question stays on the FORM, because it is how somebody
+          naturally answers, but it writes nothing: saying Yes reveals
+          Commissioned_Date below and that date is what gets stored.       */
       { name: 'isCommissioned', label: 'Has the project been commissioned?',
-        type: 'yesno', sheet: 'Is_Commissioned',
-        showIf: isWorkmanshipProject, required: isWorkmanshipProject,
-        lockedTo  : f => (isNewProject(f) ? 'No' : null),
-        forceValue: f => (isNewProject(f) ? 'No' : null),
+        type: 'yesno', transient: true,
+        showIf  : f => !isNewProject(f) && isWarrantyProject(f),
+        required: f => !isNewProject(f) && isWarrantyProject(f),
+      
         help: f => (isNewProject(f)
           ? 'Locked to No until this project is saved \u2014 a brand-new order has not gone live yet.'
-          : 'Answer Yes once the system has gone live \u2014 that reveals the workmanship '
+          : 'Answer Yes once the system has gone live \u2014 that reveals the warranty '
             + 'warranty dates below and makes them mandatory. Leave it No until then.') },
 
       { name: 'commissionedDate', label: 'Commissioned Date', type: 'date',
@@ -920,11 +1048,11 @@ export const PROJECT_SECTIONS = [
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         help: 'The day the system went live. Cover normally starts here.' },
 
-      { name: 'warrantyPeriod', label: 'Workmanship Warranty Period (in years)', type: 'number',
+      { name: 'warrantyPeriod', label: ' Warranty Period (in years)', type: 'number',
         sheet: 'Warranty_Period', step: '1', suffix: 'yrs',
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired },
 
-      { name: 'warrantyStart', label: 'Workmanship Warranty Start Date', type: 'date',
+      { name: 'warrantyStart', label: 'Warranty Start Date', type: 'date',
         sheet: 'Warranty_Start_Date',
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         help: 'Usually the same day as commissioning.' },
@@ -935,7 +1063,7 @@ export const PROJECT_SECTIONS = [
           genuinely needs to reach the sheet (see addYearsSameDay above for
           why). forceValue keeps it in step with warrantyStart/warrantyPeriod
           on every keystroke; readOnlyIf just stops anyone typing over it.  */
-      { name: 'warrantyEnd', label: 'Workmanship Warranty End Date', type: 'date',
+      { name: 'warrantyEnd', label: 'Warranty End Date', type: 'date',
         sheet: 'Warranty_End_Date',
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         forceValue: f => addYearsSameDay(f.warrantyStart, f.warrantyPeriod),
@@ -948,7 +1076,7 @@ export const PROJECT_SECTIONS = [
       /*  Radio rather than a dropdown, so the locked state is visible: on a new
           order the other choice is greyed out instead of missing, which tells
           you the rule exists rather than leaving you wondering.            */
-      { name: 'warrantyStatus', label: 'Workmanship Warranty Status', type: 'radio',
+      { name: 'warrantyStatus', label: 'Warranty Status', type: 'radio',
         sheet: 'Warranty_Status', options: ['Under Warranty', 'Warranty Expired'],
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         default: 'Under Warranty',
@@ -988,7 +1116,6 @@ export function emptyProjectForm() {
   const out = {};
   for (const f of ALL_FIELDS) {
     out[f.name] = f.default ?? '';
-    if (isNamedFileField(f)) out[fileNameKey(f)] = '';
   }
   return out;
 }
@@ -1049,6 +1176,15 @@ export function validateProject(form) {
   if (form.size && Number(form.size) <= 0) {
     errors.size = 'System size must be greater than zero';
   }
+  /*  Only when one was actually entered — the required check above already
+      handles a missing one, and this must not fire on a project whose GSTIN
+      predates the rule and is merely being re-saved untouched.           */
+  const gst = String(form.gstNumber ?? '').trim();
+  if (gst && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/.test(gst.toUpperCase())) {
+    errors.gstNumber = gst.length === 15
+      ? 'That is 15 characters but not a valid GSTIN — check it against the invoice'
+      : `A GSTIN is exactly 15 characters — this one is ${gst.length}`;
+  }
   return errors;
 }
 
@@ -1065,12 +1201,31 @@ export function toProjectPayload(form, extra = {}) {
     /* AMC terms live on AMC_Contracts, not Projects — see the note above */
     if (f.transient) continue;
     const visible = isVisible(f, form);
-    let v = visible ? form[f.name] : '';
+    /*  A hidden field is normally sent as '' so switching an answer back to No
+        cannot strand the old value in the sheet. A field may override that
+        with whenHidden when blank is not a legal value for its column — see
+        paymentsDone, whose column is a real boolean.                      */
+    let v = visible ? form[f.name] : (f.whenHidden ?? '');
 
     if ((f.type === 'number' || f.type === 'currency' || f.type === 'percent')
         && v !== '' && v !== null && v !== undefined) {
       const n = Number(v);
       v = Number.isNaN(n) ? '' : n;
+
+      /*  A PERCENT COLUMN STORES A FRACTION, NOT A WHOLE NUMBER.
+
+          Margin is formatted 0.00% in the sheet, and Sheets applies that
+          format to the RAW value: 0.12 displays as 12.00%. Every one of the
+          1,020 legacy rows holds a fraction — 0.10, 0.125, 0.15.
+
+          The form asks for "EcoSoch Margin%" and the user types 10, which
+          went in as the number 10 and displayed as 1000.00%. Two orders of
+          magnitude out, and invisible unless you compare it against the row
+          above it.
+
+          Divide on the way out, and only here — the form keeps showing the
+          human number the user typed.                                      */
+      if (f.type === 'percent' && v !== '') v = v / 100;
     }
     out[f.sheet] = v ?? '';
 
@@ -1136,10 +1291,6 @@ export function fromProjectRow(row = {}) {
         one) — v is then undefined and the field quietly stays '', which
         FileField.jsx already treats correctly: it falls back to deriving a
         name from the path, i.e. exactly the old behaviour, not a crash.   */
-    if (isNamedFileField(f)) {
-      const nv = row[`${f.sheet}_Name`];
-      if (nv !== undefined && nv !== null && nv !== '') out[fileNameKey(f)] = nv;
-    }
   }
   return out;
 }

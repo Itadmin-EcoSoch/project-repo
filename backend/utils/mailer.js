@@ -78,18 +78,30 @@ async function sendChangeEmail({ subject, heading, entityName, editedBy, changes
     </p>
   </div>`;
 
-  const t = getTransporter();
-  if (!t || !TEAM.length) {
-    console.log('\n──────── [EcoSoch mail — not sent, SMTP/TEAM not configured] ────────');
-    console.log('To:', TEAM.join(', ') || '(set TEAM_EMAILS in backend/.env)');
+  /*  Use the same transport as the rest of the app. This function was left
+      behind when mail moved to Apps Script: it called getTransporter()
+      directly, which only ever returns an SMTP transport. sendMail() below
+      already picks the right one, so defer to it.                        */
+  if (!TEAM.length) {
+    console.log('\n──────── [EcoSoch mail — not sent, no recipients] ────────');
+    console.log('To: (set TEAM_EMAILS in backend/.env)');
     console.log('Subject:', subject);
     console.log(text);
-    console.log('─────────────────────────────────────────────────────────────────\n');
-    return { sent: false, reason: 'not configured', preview: text };
+    console.log('──────────────────────────────────────────────────────────\n');
+    return { sent: false, reason: 'TEAM_EMAILS is empty', preview: text };
   }
 
-  await t.sendMail({ from: FROM, to: TEAM.join(','), subject, text, html });
-  return { sent: true, to: TEAM };
+  try {
+    const res = await sendMail({
+      to: TEAM, subject, text, html,
+      senderName: process.env.MAIL_SENDER_NAME || 'EcoSoch Solar Care',
+    });
+    return { sent: res.sent, to: res.to, reason: res.reason || null };
+  } catch (e) {
+    /*  A change notification must never fail the save that triggered it. */
+    console.warn(`[mail] change email not sent: ${e.message}`);
+    return { sent: false, reason: e.message, preview: text };
+  }
 }
 
 /* ───────────────────────────────────────────────────────────────────────────

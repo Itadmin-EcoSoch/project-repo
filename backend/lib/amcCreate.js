@@ -186,14 +186,22 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
     Payment_Period_in_Years: d.payment_period_years,
     Payment_Start_Date     : d.payment_start_date,
     Payment_End_Date       : d.payment_end_date,
-    Total_AMC_Tasks        : d.total_tasks,
-    Total_Payments         : d.total_payments,
-    Tasks_per_Payment      : d.tasks_per_payment ?? '',
   });
 
   /*  AMC_Id minted here rather than by Apps Script, so it is checked against
-      every AMC_Id already in the sheet. See lib/uniqueId.js.              */
-  contractRow.AMC_Id = await newAmcId();
+      every AMC_Id already in the sheet. See lib/uniqueId.js.
+
+      { fresh: false } — takenIds defaults to fresh:true, which forces a full
+      uncached re-read of AMC_Contracts for EVERY contract. The log shows both
+      of them on a Both order:
+
+          [sheets] loaded AMC_Contracts: 118 rows in 3262ms
+          [sheets] loaded AMC_Contracts: 119 rows in 3000ms
+
+      Six seconds of the save spent proving that two random 8-character ids
+      out of a 62^8 keyspace are not already taken. The payment and task
+      pools below already use the cache for exactly this reason.           */
+  contractRow.AMC_Id = await newAmcId({ fresh: false });
 
   const created = await db.insert('amc_contracts', contractRow);
   const amcId   = created?.AMC_Id || contractRow.AMC_Id || '';
@@ -222,10 +230,11 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
       for-of AND again for .length would generate the schedule twice, and the
       pool could be sized off a different run.                              */
   const paymentRows   = amc.generatePayments(spec, ids);
-  const paymentIdPool = await newUniqueIds('amc_payments', paymentRows.length);
+  const paymentIdPool = await newUniqueIds('amc_payments', paymentRows.length, { fresh: false });
 
-  const payments = [];
-  for (const p of paymentRows) {
+  /*  BUILT FIRST, WRITTEN ONCE. This was `await db.insert(...)` per row
+      inside the loop, which is one Apps Script round trip per payment.   */
+  const paymentPayload = paymentRows.map((p, i) => {
     const row = toSheet(MAP.amc_payments, {
       amc_id     : amcId,
       amc_type   : spec.amc_type,
@@ -234,11 +243,11 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
       description: p.description,
       status     : p.status,
     });
-    row.Project_ID         = spec.project_id;
     row.Payment_Baseamount = p.base_amount;
-    row.Payment_Id         = paymentIdPool[payments.length];
-    payments.push(await db.insert('amc_payments', row));
-  }
+    row.Payment_Id         = paymentIdPool[i];
+    return row;
+  });
+  const payments = await db.insertMany('amc_payments', paymentPayload);
 
   /* ── 3. visits, each linked to the payment covering it ──────────────── */
   const visitRows = amc.generateTasks(spec, {
@@ -246,10 +255,11 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
     paymentIds: payments.map(p => p?.Payment_Id || ''),
   });
 
-  const taskIdPool = await newUniqueIds('amc_tasks', visitRows.length);
+  const taskIdPool = await newUniqueIds('amc_tasks', visitRows.length, { fresh: false });
 
-  const visits = [];
-  for (const t of visitRows) {
+  /*  Same again: one call for every visit, not one call per visit. A
+      five-year quarterly contract is 20 of these.                        */
+  const visitPayload = visitRows.map((t, i) => {
     const row = toSheet(MAP.amc_tasks, {
       amc_id     : amcId,
       project_id : spec.project_id,
@@ -259,9 +269,10 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
       status     : t.status,
       payment_id : t.payment_id,
     });
-    row.AMC_Task_Id = taskIdPool[visits.length];
-    visits.push(await db.insert('amc_tasks', row));
-  }
+    row.AMC_Task_Id = taskIdPool[i];
+    return row;
+  });
+  const visits = await db.insertMany('amc_tasks', visitPayload);
 
   return {
     amc_id          : amcId,
@@ -333,10 +344,6 @@ async function createSolarCareAMC(body = {}) {
     console.warn('[amc] could not stamp AMC_Type on the project:', e.message);
   }
 
-  db.invalidate('amc_contracts');
-  db.invalidate('amc_tasks');
-  db.invalidate('amc_payments');
-  db.invalidate('projects');
 
   return {
     project_id      : projectId,

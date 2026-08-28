@@ -255,7 +255,6 @@ export default function AllProjects() {
                     <div className="item-meta">
                       <span className={`item-status ${cls}`}>
                         {statusLabel(p.status)}
-                        {isDefaulted(p.status) && p.defaulted_pct ? ` (${p.defaulted_pct}%)` : ''}
                       </span>
                       <span className="item-type-badge">{p.project_type||'EPC'}</span>
                       {p.size_kwp && <span className="item-type-badge">{p.size_kwp} kWp</span>}

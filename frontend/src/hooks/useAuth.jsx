@@ -100,9 +100,16 @@ export function AuthProvider({ children }) {
     return null;
   }, [user]);
 
-  /*  With auth switched off there is no user, so everything is allowed —
-      otherwise local development would show an app with every button hidden. */
-  const authOn = Boolean(config?.configured);
+    /*  With auth switched off there is no user, so everything is allowed —
+      otherwise local development would show an app with every button hidden.
+
+      `configured` is whether GOOGLE_CLIENT_ID is set, i.e. whether the login
+      page can RENDER. Whether the rules are enforced is `enforced`. And until
+      config arrives we assume auth IS on, so nothing flashes open — RequireAuth
+      is showing its Loading… screen during that window anyway.            */
+  const authOn = config
+    ? Boolean(config.enforced ?? config.configured)
+    : true;
 
   const value = useMemo(() => ({
     user, token, checking, config,

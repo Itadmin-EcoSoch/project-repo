@@ -21,7 +21,8 @@ import { useDropdownOptions } from '../hooks/useDropdownOptions';
 import ProjectUpdateEmailModal from '../components/NewOrderEmailModal';
 import ProjectFormFields from './ProjectFormFields';
 import {
-  emptyProjectForm, validateProject, toProjectPayload, ALL_FIELDS, isVisible, toDateInput, fileNameKey
+  emptyProjectForm, validateProject, toProjectPayload, ALL_FIELDS, isVisible,
+  toDateInput, toYesNo,
 } from '../lib/projectFields';
 
 import { C, page, Footer } from './formKit';
@@ -90,20 +91,133 @@ export default function EditProject() {
               — and <input type="date"> only accepts 'yyyy-MM-dd'. Assigning
               the raw value left every date box on this form blank, which read
               as "the dates were never saved" when they were there all along.  */
-          loaded[f.name] = f.type === 'date'
-            ? toDateInput(v)
-            : ((v === undefined || v === null) ? '' : v);
+                    /*  Two shapes need converting, not just copying:
+
+              date   cell_() in Code.gs returns every Date as ISO WITH TIME
+                     ('2026-08-31T00:00:00'), and <input type="date"> accepts
+                     only 'yyyy-MM-dd'.
+
+              yesno  the sheet stores real booleans, so AMC_Provided arrives as
+                     true — and the YesNo toggle compares against the string
+                     'Yes', so neither button lit up.                        */
+                    loaded[f.name] =
+            f.type === 'date'  ? toDateInput(v) :
+            f.type === 'yesno' ? toYesNo(v)     :
+            /*  A BOOLEAN FROM THE SHEET, WHATEVER CONTROL SHOWS IT.
+
+                The yesno branch above was not enough. AMC_Provided is a real
+                checkbox column — 1,320 false and 222 true across the tab —
+                but its field is type:'radio', not type:'yesno', so it fell
+                through to the raw branch and arrived as the boolean `true`.
+                The radio compares against the STRING 'Yes', true !== 'Yes',
+                and neither button lit up on a project that plainly had an AMC.
+
+                Keying off the VALUE rather than the control type fixes it for
+                any future radio or select put on a boolean column.        */
+            typeof v === 'boolean' ? toYesNo(v) :
+                        /*  The inverse of the /100 in toProjectPayload. Margin is stored
+                as a fraction because the column is formatted 0.00% and Sheets
+                applies that to the RAW value. The box asks for "Margin%", so
+                0.12 has to come back as 12 or the next save would divide it
+                again and turn 12% into 0.12%.                             */
+            (f.type === 'percent' && v !== '' && v !== null && v !== undefined
+              && !Number.isNaN(Number(v)))
+              ? String(Number(v) * 100) :
+            ((v === undefined || v === null) ? '' : v);
           /*  The original filename, saved alongside the Drive path — see
               fileNameKey in lib/projectFields.js. Older rows saved before
               this existed just don't have the column yet, so nv is
               undefined and FileField.jsx falls back to deriving a name from
               the path, same as it always did.                            */
-          if (f.type === 'file' && f.sheet) {
-            const nv = row[`${f.sheet}_Name`];
-            loaded[fileNameKey(f)] = (nv === undefined || nv === null) ? '' : nv;
+      
+        }
+                /*  ── SEED THE AMC TERMS FROM THE EXISTING CONTRACTS ────────────────
+            cleanVisits / cleanYears / cleanStart and their inspection twins are
+            transient: true — they have no sheet column, so the loop above read
+            row[undefined] and left them blank on every edit. They are inputs
+            that GENERATE a contract on save; the saved values live in the
+            AMC_Contracts tab.
+
+            GET /api/projects/:id already returns those contracts, so this reads
+            them back. Without it, opening a project that has an AMC and
+            pressing Save regenerated its whole visit schedule from empty boxes.
+
+            Matched on AMC_Type, because one project can hold an Inspection
+            contract AND a Cleaning contract at once, each with its own
+            visits-per-year and start date.                                  */
+        const amcSeed = {};
+        for (const c of (Array.isArray(p.contracts) ? p.contracts : [])) {
+          const type = String(c.amc_type ?? c.AMC_Type ?? '').toLowerCase();
+
+          /*  Reads both the mapped app keys and the raw sheet columns, because
+              the detail route may return either shape.                      */
+          const pick = (appKey, sheetCol) => c[appKey] ?? c[sheetCol] ?? '';
+
+          const visits = pick('frequency',     'AMC_Frequency');
+          const years  = pick('period_years',  'AMC_Period_in_Years');
+          const start  = pick('start_date',    'AMC_Start_Date');
+          const file   = pick('contract_file', 'AMC_Contract_Files');
+
+          if (type.includes('inspect')) {
+            amcSeed.inspVisits = visits === '' ? '' : String(visits);
+            amcSeed.inspYears  = years  === '' ? '' : String(years);
+            amcSeed.inspStart  = toDateInput(start);
+            if (file) amcSeed.inspFile = file;
+          }
+          if (type.includes('clean')) {
+            amcSeed.cleanVisits = visits === '' ? '' : String(visits);
+            amcSeed.cleanYears  = years  === '' ? '' : String(years);
+            amcSeed.cleanStart  = toDateInput(start);
+            if (file) amcSeed.cleanFile = file;
           }
         }
-        const merged = { ...emptyProjectForm(), ...loaded, projectName: p.name || '' };
+
+                /*  isCommissioned is transient — no column of its own. The answer is
+            simply whether Commissioned_Date holds a date, so derive it rather
+            than showing a blank question on every edit.                    */
+        /*  Carry Type of Client onto the edit form too.
+
+            Without this, clientType is blank on Edit and Type of Project
+            offers all six options again — so an External (AMC) client's
+            project, saved correctly as AMC, invited someone to change it to
+            EPC on the next visit.
+
+            mergeOptions keeps whatever is already saved on the row, so a
+            legacy project whose type does not match its client is still
+            shown and still editable rather than silently dropped.       */
+        loaded.clientType = String(p.clients?.type_of_client ?? '').trim();
+
+        loaded.isCommissioned = String(row.Commissioned_Date ?? '').trim() ? 'Yes' : 'No';
+
+        
+                /*  billingSameAsSite is transient — no column, nothing to restore. But
+            the answer is recoverable: if the site address still matches the
+            client's billing address, Yes is what was chosen. Deriving it beats
+            showing a blank question that suggests an answer was lost.      */
+                const clientAddr = String(p.clients?.billing_address ?? '').trim().toLowerCase();
+        const siteAddr   = String(loaded.siteAddress ?? '').trim().toLowerCase();
+
+        /*  Three-way, not two. The old line read p.clients?.address — a key
+            that does not exist; MAP.clients calls it billing_address, and
+            withClients was not fetching the column at all. clientAddr was
+            therefore always '', the && short-circuited, and EVERY project
+            opened showing No.
+
+            When the address genuinely cannot be read, leave the question
+            UNANSWERED rather than asserting No. A wrong No is not neutral:
+            it unlocks the address boxes and invites someone to retype an
+            address that was correct, which is how the two tabs drift apart.
+            Blank shows the question as still to answer, and the field is
+            only required while siteAddress is empty, so the edit still
+            saves untouched.                                              */
+        if (siteAddr && clientAddr) {
+          loaded.billingSameAsSite = clientAddr === siteAddr ? 'Yes' : 'No';
+        }
+
+        /*  amcSeed goes AFTER ...loaded so it wins — loaded already set those
+            same keys to '' from the row[undefined] reads above.            */
+        const merged = { ...emptyProjectForm(), ...loaded, ...amcSeed,
+                         projectName: p.name || '' };
         setForm(merged);
         setOriginal(merged);
         if (Array.isArray(p.status_options)) setStatusOptions(p.status_options);
@@ -111,8 +225,93 @@ export default function EditProject() {
       })
       .catch(() => setNotFound(true));
   }, [id]);
+    /*  Project_Name is a composite — client_tags_sizekWp_invertertype. AddProject
+      rebuilds it live as you type; this screen set it once on load and never
+      again, so changing the tags or size updated those columns and left the
+      name stale.
+
+      Guarded on `original` so it cannot fire during the initial load, when
+      form.area and form.size are still '' — otherwise it would blank the name
+      of every project the instant it opened.                               */
+  useEffect(() => {
+    if (!form || !original) return;
+    const next = [
+      proj?.client_name || proj?.clients?.name || '',
+      form.area,
+      form.size ? `${form.size}kWp` : '',
+      form.inverterType,
+    ].filter(Boolean).join('_');
+    if (next && next !== form.projectName) setForm(f => ({ ...f, projectName: next }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form?.area, form?.size, form?.inverterType, original]);
+
+  /*  "Is the client's billing address the same as the site's postal address?"
+
+      Yes → copy THREE things off the client record, because for a rooftop job
+            at the client's own address all three are the same fact:
+              · Client_Address       → Postal address of site
+              · Client_GMap_Location → Latitude, Longitude
+              · Client_Region        → Project Region
+      No  → clear all three, so a stale copy is never mistaken for typed input.
+
+      Add Project does this in a useEffect keyed on the answer. That pattern is
+      WRONG here and would lose data: this form DERIVES an answer during load
+      (see the block in the fetch above), so the effect would fire immediately
+      on open — and a project whose answer derives to No would have its saved
+      address, coordinates and region wiped the moment somebody looked at it.
+
+      Handling it inside set() instead means it can only ever run from a real
+      click on the toggle. Loading the form does not go through set().     */
+  function answerBillingSameAsSite(v) {
+    if (v !== 'Yes' && v !== 'No') {
+      setForm(f => ({ ...f, billingSameAsSite: v }));
+      return;
+    }
+
+    if (v === 'No') {
+      setForm(f => ({ ...f, billingSameAsSite: 'No',
+                      siteAddress: '', gmap: '', projectRegion: '' }));
+      setErrors(e => ({ ...e, billingSameAsSite: undefined }));
+      return;
+    }
+
+    const c       = proj?.clients || {};
+    const billing = String(c.billing_address || '').trim();
+    const region  = String(c.region || '').trim();
+
+    /*  Fallback: a few older client rows have the coordinates typed into the
+        address field instead of the map field, so if the proper fields are
+        empty and the address parses as "lat, lng", use that.              */
+    let coords = '';
+    if (c.lat != null && c.lng != null) {
+      coords = `${c.lat}, ${c.lng}`;
+    } else {
+      const m = billing.match(/^\s*(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)\s*$/);
+      if (m) coords = `${m[1]}, ${m[2]}`;
+    }
+
+    setForm(f => ({
+      ...f,
+      billingSameAsSite: 'Yes',
+      siteAddress  : billing || f.siteAddress,
+      gmap         : coords  || f.gmap,
+      projectRegion: region  || f.projectRegion,
+    }));
+    setErrors(e => ({ ...e, billingSameAsSite: undefined, siteAddress: undefined,
+                      gmap: undefined, projectRegion: undefined }));
+
+    const missing = [
+      !billing && 'billing address',
+      !coords  && 'coordinates',
+      !region  && 'region',
+    ].filter(Boolean);
+    if (missing.length) {
+      toast(`This client has no ${missing.join(' or ')} saved — please fill that in by hand.`);
+    }
+  }
 
   const set = (k, v) => {
+    if (k === 'billingSameAsSite') return answerBillingSameAsSite(v);
     setForm(f => ({ ...f, [k]: v }));
     setErrors(e => ({ ...e, [k]: undefined }));
   };

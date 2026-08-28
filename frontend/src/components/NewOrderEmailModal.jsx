@@ -155,7 +155,7 @@ export default function NewOrderEmailModal({
             {(preview.changes?.length || 0) === 1 ? '' : 's'}
             {preview.threaded
               ? <> · replies into the original New Order email thread</>
-              : <span style={{ color:C.warning }}> · the New Order Form was never sent from EcoFlow for this project, so this will start a new thread</span>}
+              : <span style={{ color:C.warning }}> · sent as a new message </span>}
           </div>
         )}
 

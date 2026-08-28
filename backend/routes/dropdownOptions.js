@@ -66,7 +66,7 @@ const { REQUIRE_AUTH } = require('../middleware/auth');
     behind an Admin wall would be a real regression for the sales team, not a
     security fix. Every other list (Project_Type, Inverter_Brand, …) stays
     Admin-only, because those values change what business logic elsewhere in
-    projectFields.js does (isAmcProject, isWorkmanshipProject, the AMC
+    projectFields.js does (isAmcProject, isWarrantyProject, the AMC
     schedule, …), not just what a picker shows.                             */
 const OPEN_TO_ANY_STAFF = new Set(['Project_Region']);
 

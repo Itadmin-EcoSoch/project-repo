@@ -428,6 +428,53 @@ async function insert(name, row) {
   return out.data;
 }
 
+/**
+ * Append MANY rows in ONE round trip.
+ *
+ * The AMC schedule is what forced this. A five-year quarterly cleaning
+ * contract is 20 visits plus 20 payment rows, and lib/amcCreate.js was
+ * awaiting insert() once per row inside a for loop. Apps Script serialises
+ * executions per user, and db/sheets.js serialises them again through pump(),
+ * so those 40 rows became 40 sequential /exec round trips — each taking a
+ * lock, appending one row, flushing and busting the cache. At roughly 3.5
+ * seconds a trip that is two and a half minutes of the user watching a
+ * "Saving..." button, for a write the sheet can do in one call.
+ *
+ * Code.gs handles this with a single setValues() over the whole block, one
+ * lock, one flush, one cacheBust — see createMany_ there.
+ */
+async function insertMany(name, rows) {
+  const list = Array.isArray(rows) ? rows.filter(Boolean) : [];
+  if (!list.length) return [];
+  const out = await call({ action: 'createMany', table: name, rows: list });
+  const made = out.data || [];
+  for (const r of made) patchCache(name, ID_COL[name], null, r, 'insert');
+  return made;
+}
+
+/**
+ * Append MANY rows in ONE round trip.
+ *
+ * Your own log is the argument for this: a 2-row tab takes 2552ms and a
+ * 1502-row tab takes 3123ms. The payload barely matters — roughly 3 seconds
+ * is the fixed cost of the /exec call, the script lock and the flush. So what
+ * decides how long a save takes is the NUMBER of round trips, and lib/
+ * amcCreate.js was making one per AMC row: 40+ for a five-year quarterly
+ * contract, all serialised through pump() and Apps Script's per-user
+ * execution lock.
+ *
+ * Code.gs does the whole block with one setValues(), one lock, one flush and
+ * one cacheBust — see createMany_ there.
+ */
+async function insertMany(name, rows) {
+  const list = Array.isArray(rows) ? rows.filter(Boolean) : [];
+  if (!list.length) return [];
+  const out = await call({ action: 'createMany', table: name, rows: list });
+  const made = out.data || [];
+  for (const r of made) patchCache(name, ID_COL[name], null, r, 'insert');
+  return made;
+}
+
 async function update(name, id, patch) {
   const out = await call({ action: 'update', table: name, id: String(id), patch });
   patchCache(name, ID_COL[name], id, out.data, 'update');
@@ -582,7 +629,7 @@ module.exports = {
   /*  Exposed so routes/uploads.js can send the custom `uploadFile` action
       without duplicating the token, timeout and JSON-error handling above. */
   call,
-  table, list, all, get, insert, update, remove,
+  table, list, all, get, insert, insertMany, update, remove,
   createOrder, lookups, schema, ping, resolveFiles,
   invalidate, prewarm, stats,
   TABLES: TABLE_NAMES,

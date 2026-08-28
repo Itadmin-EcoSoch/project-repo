@@ -157,13 +157,11 @@ router.post('/', async (req, res, next) => {
     const name = b.name || [b.firstName || b.first_name, b.lastName || b.last_name]
                             .filter(Boolean).join(' ').trim();
 
-    const row = toSheet(MAP.users, {
+        const row = toSheet(MAP.users, {
       ...b, email, name, role,
       department: b.department || 'All',
-      status    : b.status || 'Active',
     });
-    row.Email        = email;
-    row.Created_Date = new Date().toISOString();
+    row.Email = email;
 
     const saved = await db.insert('users', row);
     db.invalidate('users');

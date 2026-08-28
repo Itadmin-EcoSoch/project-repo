@@ -14,7 +14,7 @@
 
     Three groups the form spec does not cover are added explicitly below:
 
-      WARRANTY_ROWS   Commissioned / Warranty / Workmanship dates — the columns
+ARRANTY_ROWS   Commissioned and Warranty dates — the columns
                       the SolarCare expiry cron reads. Worth seeing on the page
                       that decides whether a project is still covered.
       RECORD_ROWS     who created it, who last touched it, when.
@@ -94,7 +94,7 @@ const isFileCol = (col, type) =>
 
 const isDateCol = k => /(_Date|_At)$/.test(k);
 const isMoneyCol = k => /^(Order_Value|Referral_Amount|Retention_Amount|Payment_Amount)$/.test(k);
-const isPctCol   = k => /^(Margin|Defaulted_Pct)$/.test(k);
+const isPctCol   = k => /^Margin$/.test(k);
 
 /** One sheet value → what the user should read. */
 function display(col, value, type) {
@@ -107,18 +107,33 @@ function display(col, value, type) {
   }
   if (/^(TRUE|FALSE)$/i.test(s)) return /^true$/i.test(s) ? 'Yes' : 'No';
   if (isMoneyCol(col)) return money(s);
-  if (isPctCol(col))   return s.endsWith('%') ? s : `${s}%`;
+  /*  Stored as a fraction (0.12) because the column is formatted 0.00% and
+      Sheets applies that format to the raw value. Multiply for display.
+      A value that already carries a % is left alone, and so is anything
+      above 1 — a legacy row that really does hold 12 rather than 0.12 must
+      not be rendered as 1200%.                                           */
+  if (isPctCol(col)) {
+    if (s.endsWith('%')) return s;
+    const n = Number(s);
+    if (Number.isNaN(n)) return s;
+    return n <= 1 ? `${Number((n * 100).toFixed(2))}%` : `${n}%`;
+  }
   if (type === 'date' || isDateCol(col)) return /(_At)$/.test(col) ? fmtDateTime(s) : fmtDate(s);
   return s;
 }
 
 /* ── extra rows the form spec does not define ─────────────────────────── */
 
+/*  The three Workmanship_* rows that used to sit here are gone with their
+    columns. They were never a separate fact: Warranty_Status / Warranty_Period
+    / Warranty_Start_Date / Warranty_End_Date hold the workmanship warranty and
+    always did, which is why on the 39 rows that had both, every Workmanship
+    cell either matched its Warranty twin or was blank.
+
+    Left in place they would render three permanently empty rows against
+    columns that no longer exist.                                          */
 const WARRANTY_ROWS = [
   ['Commissioned_Date',      'Commissioned Date'],
-  ['Workmanship_Start_Date', 'Workmanship Start'],
-  ['Workmanship_End_Date',   'Workmanship End'],
-  ['Workmanship_Status',     'Workmanship Status'],
   ['Warranty_Start_Date',    'Warranty Start'],
   ['Warranty_End_Date',      'Warranty End'],
   ['Warranty_Period',        'Warranty Period (years)'],
@@ -130,7 +145,6 @@ const RECORD_ROWS = [
   ['Client_Id',            'Client ID'],
   ['Internal_Id',          'Internal ID'],
   ['Prev_Project_Status',  'Previous Status'],
-  ['Defaulted_Pct',        'Payment Received'],
   ['New_Order_Sent_At',    'New Order Email Sent'],
   ['New_Order_Sent_By',    'Sent By'],
   ['Created_By',           'Created By'],
@@ -165,9 +179,9 @@ function HeroAction({ icon, label, onClick, primary }) {
   );
 }
 
-/*  How much cover is left. Shown next to Warranty End and Workmanship End
-    because those two dates are what the nightly SolarCare job acts on, and
-    "2026-08-19" alone does not tell you which side of today it falls.     */
+/* How much cover is left. Shown next to Warranty End, because that date is
+what the nightly SolarCare job acts on, and "2026-08-19" alone does not
+tell you which side of today it falls. */
 function CoverChip({ end }) {
   const e = isoOf(end);
   if (!e) return null;
@@ -334,7 +348,7 @@ export default function ProjectDetail() {
       if (rows.length) out.push({ title, icon: sec.icon || '📄', rows });
     }
 
-    /* 2 — warranty / workmanship: what the SolarCare cron reads.
+    /* 2 — warranty: what the SolarCare cron reads.
            Anything the form spec already rendered above is skipped, so adding
            these columns to lib/projectFields.js does not double them up. */
     const wRows = [];

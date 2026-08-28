@@ -29,8 +29,22 @@ const perm = require('../lib/permissions');
 const SECRET       = process.env.JWT_SECRET || 'change-me-in-env';
 const REQUIRE_AUTH = String(process.env.REQUIRE_AUTH || 'false').toLowerCase() === 'true';
 
-/** Routes reachable without a token, even when REQUIRE_AUTH is on. */
-const PUBLIC = [/^\/health/, /^\/api\/auth\//];
+/*  Routes reachable without a session token, even when REQUIRE_AUTH is on.
+
+    MATCHED AGAINST req.originalUrl, NOT req.path. This middleware is mounted
+    as app.use('/api', requireAuth), and Express strips the mount point from
+    req.path — so inside here the webhook reads '/sync/invalidate', never
+    '/api/sync/invalidate'. Both patterns were written in the full-path form,
+    so NEITHER could ever match and the allowlist was silently inert.
+
+    /api/sync/invalidate is the Apps Script "On change" webhook. It carries
+    SHEETS_API_TOKEN in its own body and checks it in routes/sync.js — it has
+    no JWT and never will, because Apps Script is not a signed-in person.  */
+const PUBLIC = [
+  /^\/health/,
+  /^\/api\/auth\//,
+  /^\/api\/sync\/invalidate\/?$/,
+];
 
 /* Warn once, loudly, rather than on every request. */
 let warned = false;
@@ -60,7 +74,7 @@ function attachUser(req, _res, next) {
 
 function requireAuth(req, res, next) {
   if (!REQUIRE_AUTH) return next();
-  if (PUBLIC.some(rx => rx.test(req.path))) return next();
+  if (PUBLIC.some(rx => rx.test(req.originalUrl || req.path))) return next();
   if (req.user) return next();
   res.status(401).json({ success: false, error: 'Sign in required', code: 'AUTH_REQUIRED' });
 }
@@ -146,7 +160,9 @@ function enforcePermissions(req, res, next) {
   /* 1. administration areas */
   for (const area of ADMIN_AREAS) {
     if (!area.rx.test(req.path)) continue;
-    if (area.writeOnly && !isWrite) break;      // reads handled by the route itself
+        /*  continue, not break — break abandons the WHOLE scan, so a read that
+        matched one area would skip the checks for every area after it.   */
+    if (area.writeOnly && !isWrite) continue;   // reads handled by the route itself
     if (!perm.can(role, area.capability)) {
       return deny(res, MESSAGES[area.capability], area.capability);
     }

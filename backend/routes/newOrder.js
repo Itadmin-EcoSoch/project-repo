@@ -1,6 +1,6 @@
 /*  backend/routes/newOrder.js
     ----------------------------------------------------------------------------
-    Sends the "New Order Form" email — the EcoFlow replacement for the AppSheet
+    Sends the "New Order Form" email — the Project Repository replacement for the AppSheet
     automation that used to fire whenever a project was added.
 
         GET  /api/new-order/:projectId/preview   render, don't send
@@ -406,26 +406,18 @@ router.post('/:projectId/send', async (req, res, next) => {
       attachments,
     });
 
-    /* Stamp the project so the UI can show "already sent". Optional column —
-       add New_Order_Sent_At / New_Order_Sent_By to the Projects tab to enable
-       it. Wrapped in catch because a missing column must not fail the send:
-       the mail is already gone by this point. */
+        /*  The project row is no longer stamped with New_Order_Sent_At /
+        New_Order_Sent_By / New_Order_Message_Id — those three columns were
+        removed from the Projects tab to match the itadmin master schema.
+
+        Nothing is lost. The Order_Log insert below already records who sent
+        what and when, which is the audit trail that mattered. The Message-ID
+        was only ever used to thread update emails, and it could never work
+        on the Apps Script transport: MailApp does not return a Message-ID,
+        which is why that column was empty on all 1,720 rows.              */
     const sentAt = new Date().toISOString();
-    let stamped = false;
-    if (result.sent) {
-      try {
-        await db.update('projects', project.Project_ID, {
-          New_Order_Sent_At  : sentAt,
-          New_Order_Sent_By  : req.user?.email || req.body?.addedBy || 'app',
-          /* Keeping the Message-ID is what lets later update emails thread
-             into this same Gmail conversation. */
-          New_Order_Message_Id: result.messageId || '',
-        });
-        stamped = true;
-      } catch (e) {
-        console.warn('[new-order] sent, but could not stamp the project row:', e.message);
-      }
-    }
+    const stamped = false;
+
 
     /*  Audit row in Order_Log — best effort, never blocks the response.
 
@@ -458,8 +450,6 @@ router.post('/:projectId/send', async (req, res, next) => {
         attachments_skipped: result.skipped || [],
         smtp_response: result.response || null,
         from      : result.from || null,
-        attached  : (result.attached || []).map(a => a.name),
-        attachments_skipped: result.skipped || [],
         test_mode : r.testMode,
         sent_at   : sentAt,
         stamped,
@@ -518,7 +508,7 @@ router.post('/:projectId/update-preview', async (req, res, next) => {
         project_id : project.Project_ID,
         project_name: project.Project_Name,
         /* No original Message-ID means the New Order Form was never sent from
-           EcoFlow, so this reply cannot be threaded onto it. */
+           Project Repository, so this reply cannot be threaded onto it. */
         threaded   : Boolean(project.New_Order_Message_Id),
       },
     });
@@ -647,9 +637,9 @@ router.post('/test-send', async (req, res) => {
     const r = recipients();
     const result = await sendMail({
       to: r.to,
-      subject: `[TEST] EcoFlow SMTP check — ${new Date().toLocaleString('en-IN')}`,
-      text: 'If you are reading this, EcoFlow can send email successfully.',
-      html: '<p style="font-family:Arial">If you are reading this, EcoFlow can send email successfully.</p>',
+      subject: `[TEST] Project Repository SMTP check — ${new Date().toLocaleString('en-IN')}`,
+      text: 'If you are reading this, Project Repository can send email successfully.',
+      html: '<p style="font-family:Arial">If you are reading this, Project Repository can send email successfully.</p>',
     });
     res.json({ success: true, data: result });
   } catch (err) {

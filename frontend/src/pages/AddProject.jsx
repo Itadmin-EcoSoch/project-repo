@@ -30,6 +30,34 @@ import {
 } from '../lib/projectFields';
 import { C, page, Card, Field, Footer } from './formKit';
 
+/*  ── SAVE PROGRESS ────────────────────────────────────────────────────────
+
+    The weights are MEASURED, not guessed. From the backend log on a real
+    two-contract order:
+
+        POST /api/orders             7.5s
+        POST /api/amc-setup/create  25.8s
+        New Order Form email        background, does not block
+
+    So writing the order is roughly a quarter of the wait and the AMC schedule
+    is the rest, which is why the bar sits at 25% for a long time and then
+    moves. A bar that crawled evenly to 100% would be lying about which part
+    is slow.
+
+    The percentage is per-STAGE, not a live byte count — the work is happening
+    inside Apps Script and Node cannot see into it. The elapsed counter next to
+    it is the honest number, and it is there so nobody has to guess whether a
+    long pause means progress or a hang.
+
+    Per-FILE upload progress is real byte progress and already exists — see
+    pages/FileField.jsx, which reads axios's onUploadProgress.               */
+const SAVE_STAGES = [
+  { pct: 25,  label: 'Saving the client and project…' },
+  { pct: 85,  label: 'Generating the AMC contracts and visit schedule…' },
+  { pct: 100, label: 'Saved. Sending the New Order Form…' },
+];
+
+
 export default function AddProject() {
   const { id }   = useParams();
   const navigate = useNavigate();
@@ -61,6 +89,23 @@ export default function AddProject() {
   const [form,    setForm]    = useState(emptyProjectForm);
   const [errors,  setErrors]  = useState({});
   const [saving,  setSaving]  = useState(false);
+
+  /*  SAVE PROGRESS.
+
+      `stage` is the index into SAVE_STAGES above; `startedAt` drives the
+      elapsed-seconds counter. Both reset on every attempt so a retry after a
+      failure does not carry the previous run's clock.                     */
+  const [stage,     setStage]     = useState(-1);
+  const [startedAt, setStartedAt] = useState(0);
+  const [elapsed,   setElapsed]   = useState(0);
+
+  /*  One-second tick while saving. Cleared the moment saving stops, so no
+      timer survives an unmount or a failed attempt.                       */
+  useEffect(() => {
+    if (!saving || !startedAt) return;
+    const t = setInterval(() => setElapsed(Math.round((Date.now() - startedAt) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [saving, startedAt]);
 
   /*  Fetched once, the moment this page opens — before the project exists in
       the sheet at all. Without this, every file attached while still filling
@@ -192,6 +237,33 @@ export default function AddProject() {
   ].filter(Boolean).join('_'), [client, form.area, form.size, form.inverterType]);
 
   /* the read-only Project Name box mirrors it as you type */
+   /*  Carry Type of Client onto the project form, and pre-answer Type of
+      Project when it is already decided.
+
+      External (AMC) can only ever be an AMC project, so it is selected here
+      rather than asked again — the field's option list collapses to ['AMC']
+      too (see projType in lib/projectFields.js), so the two cannot disagree.
+
+      Internal is NOT pre-filled: it covers EPC and I&C, and Consultancy,
+      Retail and Ad-hoc Maintenance are all still legitimate choices for an
+      internal client. Guessing one of six would be worse than asking.
+
+      Only ever fills a BLANK projType, so a value already chosen on this form
+      is never overwritten by a late-arriving client fetch.               */
+  useEffect(() => {
+    const ct = String(client?.type_of_client ?? '').trim();
+    if (!ct) return;
+    setForm(f => {
+      const isExternal = ct.toLowerCase() === 'external';
+      if (f.clientType === ct && (!isExternal || f.projType === 'AMC')) return f;
+      return {
+        ...f,
+        clientType: ct,
+        projType  : isExternal && !f.projType ? 'AMC' : f.projType,
+      };
+    });
+  }, [client]);
+
   useEffect(() => { setForm(f => ({ ...f, projectName: projName })); }, [projName]);
 
   function validate() {
@@ -213,7 +285,7 @@ export default function AddProject() {
 
   /** Creates the project (and, for a new client, the client too — one atomic
    *  call). Returns { project_id, project_name, client_id }. */
-  async function saveOrder() {
+  async function saveOrder({ onStage = () => {} } = {}) {
     if (created) return created;                  // already saved this session
 
     /*  _newRegion is bookkeeping from the client form, not a client field.
@@ -221,6 +293,7 @@ export default function AddProject() {
         it here keeps the request body honest about what it is sending.     */
     const { _newRegion, ...clientPayload } = clientDraft || {};
 
+    onStage(0);
     const res = await api.post('/api/orders', {
       ...(isNewClient
         ? { client_type: 'new', client: clientPayload }
@@ -236,7 +309,6 @@ export default function AddProject() {
         ...(isNewClient ? {} : { Client_Id: id, Client_Name: client?.name || '' }),
       }),
       status       : 'Active',
-      defaulted_pct: null,
       submitted_by : user?.email || 'staff',
     });
 
@@ -257,6 +329,7 @@ export default function AddProject() {
         Solar Care screen.                                                   */
     const amc = amcSetupPayload(form, out.project_id);
     if (amc) {
+      onStage(1);
       try {
         const r = await api.post('/api/amc-setup/create', amc);
         const d = r?.data ?? r;
@@ -279,6 +352,7 @@ export default function AddProject() {
       if (_newRegion) addDropdownOption('Project_Region', _newRegion).catch(() => {});
     }
 
+    onStage(2);
     setCreated(out);
     return out;
   }
@@ -286,8 +360,11 @@ export default function AddProject() {
   async function handleSave() {
     if (!validate()) return;
     setSaving(true);
+    setStage(0);
+    setStartedAt(Date.now());
+    setElapsed(0);
     try {
-      const out = await saveOrder();
+      const out = await saveOrder({ onStage: setStage });
 
       if (out.amcError) {
         toast.success('✅ Project saved');
@@ -415,6 +492,41 @@ export default function AddProject() {
       <ProjectFormFields form={form} set={set} errors={errors} statusOptions={['Active']}
                          isAdmin={isAdmin} dropdownOptions={dropdownOptions}
                          projectId={newProjectId} />
+
+      {/*  SAVE PROGRESS — only while saving. Replaces nothing; it sits above
+           the status card so the card's "Not saved yet" text stays put.   */}
+      {saving && stage >= 0 && (
+        <div style={{ margin: '0 16px 12px', padding: '12px 14px', borderRadius: 12,
+                      background: '#f8fafc', border: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                        gap: 10, marginBottom: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+              {SAVE_STAGES[stage]?.label || 'Working…'}
+            </div>
+            <div style={{ fontSize: 11, color: C.text3, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+              {SAVE_STAGES[stage]?.pct ?? 0}% · {elapsed}s
+            </div>
+          </div>
+
+          <div style={{ height: 6, borderRadius: 99, background: '#e2e8f0', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${SAVE_STAGES[stage]?.pct ?? 0}%`,
+              background: C.success,
+              borderRadius: 99,
+              /*  Long, because the jumps are large and infrequent. A snappy
+                  transition on a 60-point jump reads as a glitch.        */
+              transition: 'width .8s ease',
+            }} />
+          </div>
+
+          <div style={{ fontSize: 10.5, color: C.text3, marginTop: 7, lineHeight: 1.5 }}>
+            Writing to Google Sheets. This normally takes about
+            {amcVisitCount(form) > 0 ? ' 20–30 seconds when an AMC is included' : ' 8–10 seconds'}.
+            Please do not close this tab.
+          </div>
+        </div>
+      )}
 
       {/* which button is live right now */}
       <div style={{ margin: '0 16px 12px', padding: '10px 14px', borderRadius: 12,
