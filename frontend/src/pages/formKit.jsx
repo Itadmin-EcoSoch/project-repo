@@ -638,9 +638,34 @@ export function Field({ label, required, error, children, showErrorText, style:e
 }
 
 /* ── Card wrapper ────────────────────────────────────────────────── */
-export function Card({ icon, title, color=C.primary, children }) {
+export function DateField({ value, onChange, hasError }) {
+  const ref = useRef(null);
+  const [foc, setFoc] = useState(false);
+  const iso  = value && /^\d{4}-\d{2}-\d{2}/.test(String(value)) ? String(value).slice(0, 10) : '';
+  const disp = iso ? iso.split('-').reverse().join('-') : '';   // yyyy-mm-dd -> dd-mm-yyyy
+  const open = () => { const el = ref.current; if (!el) return; try { el.showPicker(); } catch { el.focus(); } };
   return (
-    <div style={card}>
+    <div style={{ position: 'relative', cursor: 'pointer' }} onClick={open}>
+      <div style={{ ...inputBase, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    ...(foc ? inputFocus : {}), ...(hasError ? inputErr : {}),
+                    color: disp ? C.text1 : C.text3, userSelect: 'none' }}>
+        <span>{disp || 'dd-mm-yyyy'}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.text3} strokeWidth="2" strokeLinecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <input ref={ref} type="date" value={iso} tabIndex={-1}
+             onChange={e => onChange(e.target.value)}
+             onFocus={() => setFoc(true)} onBlur={() => setFoc(false)}
+             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, pointerEvents: 'none' }} />
+    </div>
+  );
+}
+
+export function Card({ icon, title, color=C.primary, tint, children }) {
+  return (
+    <div style={{ ...card, ...(tint ? { background: tint } : {}) }}>
       <div style={cardHeader(color)}>
         <div style={cardIconBg(color)}>{icon}</div>
         <span style={{ fontSize:12, fontWeight:700, color:C.text1, letterSpacing:'.01em' }}>{title}</span>

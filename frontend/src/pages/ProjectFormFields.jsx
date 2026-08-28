@@ -13,7 +13,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { PROJECT_SECTIONS, ALL_FIELDS, isVisible, isRequired, mergeOptions, toDateInput, isNewProject } from '../lib/projectFields';
-import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType, indianComma } from './formKit';
+import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType, indianComma, DateField } from './formKit';
 import { maxLengthFor, TEXTAREA_MAX } from '../lib/fieldLimits';
 import FileField from './FileField';
 
@@ -131,6 +131,21 @@ function RadioGroup({ value, options = [], onChange, hasError, lockedTo = null }
 
 /*  Keep at most one decimal place while typing a percentage. */
 const oneDecimal = s => String(s ?? '').replace(/(\.\d)\d+/, '$1');
+/*  Subtle per-section colour theme so each card is visually distinct. */
+const SECTION_PALETTE = [
+  { color: '#2563eb', tint: '#f5f8ff' },
+  { color: '#0a6450', tint: '#f1fbf7' },
+  { color: '#c2410c', tint: '#fff7f2' },
+  { color: '#7c3aed', tint: '#faf7ff' },
+  { color: '#0891b2', tint: '#f1fbfd' },
+  { color: '#be185d', tint: '#fff5f9' },
+  { color: '#ca8a04', tint: '#fffdf2' },
+  { color: '#0d9488', tint: '#f1fdfb' },
+  { color: '#4f46e5', tint: '#f6f6ff' },
+  { color: '#db2777', tint: '#fff5fa' },
+  { color: '#65a30d', tint: '#f9fdf0' },
+];
+
 /*  Keep a numeric entry within [0, max] as the user types. Partial input
     like '' or '5.' is left alone so typing still works; anything that
     resolves to a number is clamped to 0..max.                              */
@@ -280,7 +295,7 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
           braces. A value can reach this component from a restored draft or a
           screen that builds its own form state, and a silently-blank date box
           is a bad way to find that out.                                     */
-      return <SInput type="date" value={toDateInput(v)} onChange={e => on(e.target.value)} hasError={bad} />;
+      return <DateField value={toDateInput(v)} onChange={on} hasError={bad} />;
 
         case 'latlng':
       /*  sanitize={false} — a southern latitude starts with a minus, and the
@@ -402,14 +417,16 @@ export default function ProjectFormFields({ form, set, errors = {}, only = null,
   return (
     <>
       <style>{GRID_CSS}</style>
-      {sections.map(section => {
+      {sections.map((section, si) => {
         /*  A section whose every field is conditional and currently hidden is
             not worth a heading — it would read as an empty card.            */
         const visible = section.fields.filter(f => isVisible(f, form));
         if (!visible.length) return null;
 
         return (
-          <Card key={section.id} color={C.accent}
+          <Card key={section.id}
+                color={SECTION_PALETTE[si % SECTION_PALETTE.length].color}
+                tint={SECTION_PALETTE[si % SECTION_PALETTE.length].tint}
                 title={typeof section.title === 'function' ? section.title(form) : section.title}
                 icon={<span style={{ fontSize: 14 }}>{section.icon}</span>}>
             {/*  Two or three columns on a laptop, one on a phone. auto-fit with
