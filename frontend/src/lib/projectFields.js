@@ -954,6 +954,7 @@ export const PROJECT_SECTIONS = [
       { name: 'inspFile', label: 'Attach Inspection contract / document', type: 'file',
         transient: true, width: 'quarter', uploadColumn: 'AMC_Inspection_Contract',
         showIf: f => wantsInspection(f),
+        required: f => wantsInspection(f),
       },
 
       /*  Forces Cleaning onto a fresh row rather than cramming into whatever
@@ -990,6 +991,7 @@ export const PROJECT_SECTIONS = [
       { name: 'cleanFile', label: 'Attach Cleaning contract / document', type: 'file',
         transient: true, width: 'quarter', uploadColumn: 'AMC_Cleaning_Contract',
         showIf: f => wantsCleaning(f),
+        required: f => wantsCleaning(f),
       },
     ],
   },
@@ -1056,7 +1058,7 @@ export const PROJECT_SECTIONS = [
         help: 'The day the system went live. Cover normally starts here.' },
 
       { name: 'warrantyPeriod', label: ' Warranty Period (in years)', type: 'number',
-        sheet: 'Warranty_Period', step: '1', suffix: 'yrs',
+        sheet: 'Warranty_Period', step: '1', suffix: 'yrs', default: '5', max: 100,
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired },
 
       { name: 'warrantyStart', label: 'Warranty Start Date', type: 'date',
@@ -1084,7 +1086,7 @@ export const PROJECT_SECTIONS = [
           order the other choice is greyed out instead of missing, which tells
           you the rule exists rather than leaving you wondering.            */
       { name: 'warrantyStatus', label: 'Warranty Status', type: 'radio',
-        sheet: 'Warranty_Status', options: ['Under Warranty', 'Warranty Expired'],
+        sheet: 'Warranty_Status', options: ['Under Warranty'],
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired,
         default: 'Under Warranty',
         lockedTo  : f => (isNewProject(f) ? 'Under Warranty' : null),

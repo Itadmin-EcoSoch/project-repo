@@ -312,9 +312,10 @@ export default function EditProject() {
 
   const set = (k, v) => {
     if (k === 'billingSameAsSite') return answerBillingSameAsSite(v);
-    setForm(f => ({ ...f, [k]: v }));
+    setForm(f => { const next = { ...f, [k]: v }; if (k === 'commissionedDate') next.warrantyStart = v; return next; });
     setErrors(e => {
       const upd = { ...e, [k]: undefined };
+      if (k === 'commissionedDate') upd.warrantyStart = undefined;   // mirror into Warranty Start
       /*  Cross-field: Installation must be on/before Commissioning. Evaluated
           the instant EITHER date changes, and the message always lands on the
           Installation field so it flags immediately — no blur needed.       */

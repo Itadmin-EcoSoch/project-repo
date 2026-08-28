@@ -242,7 +242,7 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
         <div style={{ padding: '11px 13px', background: C.surface, borderRadius: 10,
                       border: `1px solid ${C.border}`, fontSize: 13, fontWeight: 600,
                       color: v ? C.text1 : C.text3, wordBreak: 'break-word' }}>
-          {v || 'Fills in as you complete the form'}
+          {(/^\d{4}-\d{2}-\d{2}/.test(String(v)) ? String(v).slice(0,10).split('-').reverse().join('-') : v) || 'Fills in as you complete the form'}
         </div>
       );
 
