@@ -532,7 +532,7 @@ export const PROJECT_SECTIONS = [
       { name: 'orderVal', label: 'Order Value (without GST)', type: 'currency', sheet: 'Order_Value',
         required: true, max: 10000000000 },
 
-      { name: 'margin', label: 'EcoSoch Margin%', type: 'percent', sheet: 'Margin', required: true },
+      { name: 'margin', label: 'EcoSoch Margin%', type: 'percent', sheet: 'Margin', required: true, max: 100 },
 
       /*  Options are computed per project by the backend and passed into
           ProjectFormFields as statusOptions — see the Valid_If port in

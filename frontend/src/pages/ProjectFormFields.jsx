@@ -131,6 +131,19 @@ function RadioGroup({ value, options = [], onChange, hasError, lockedTo = null }
 
 /*  Keep at most one decimal place while typing a percentage. */
 const oneDecimal = s => String(s ?? '').replace(/(\.\d)\d+/, '$1');
+/*  Keep a numeric entry within [0, max] as the user types. Partial input
+    like '' or '5.' is left alone so typing still works; anything that
+    resolves to a number is clamped to 0..max.                              */
+const clampNum = (raw, max) => {
+  const s = String(raw ?? '');
+  if (s === '' || s === '.' || s === '-') return '';
+  const n = Number(s);
+  if (Number.isNaN(n)) return s;
+  let c = n;
+  if (c < 0) c = 0;
+  if (typeof max === 'number' && c > max) c = max;
+  return c === n ? s : String(c);
+};
 
 function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions, onFieldBlur) {
   const v   = form[f.name] ?? '';
@@ -245,18 +258,20 @@ function renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dr
                         placeholder={f.placeholder || ''} hasError={bad} />;
 
     case 'number':
-      return <SInput type="number" step={f.step} value={v} onChange={e => on(e.target.value)}
+      return <SInput type="number" step={f.step} min={0} max={f.max} value={v}
+                     onChange={e => on(clampNum(e.target.value, f.max))}
                      placeholder={f.placeholder || '0'} suffix={f.suffix} hasError={bad}
                      onBlur={() => onFieldBlur?.(f)} />;
 
     case 'currency':
-      return <SInput type="text" sanitize={false} value={indianComma(v)}
-                     onChange={e => on(e.target.value.replace(/[^\d.]/g, ''))}
+      return <SInput type="text" sanitize={false} inputMode="numeric" value={indianComma(v)}
+                     onChange={e => on(clampNum(e.target.value.replace(/[^\d.]/g, ''), f.max))}
                      placeholder="0" prefix="₹" hasError={bad}
                      onBlur={() => onFieldBlur?.(f)} />;
 
     case 'percent':
-      return <SInput type="number" step="0.1" value={v} onChange={e => on(oneDecimal(e.target.value))}
+      return <SInput type="number" step="0.1" min={0} max={f.max} value={v}
+                     onChange={e => on(clampNum(oneDecimal(e.target.value), f.max))}
                      placeholder="0.0" suffix="%" hasError={bad}
                      onBlur={() => onFieldBlur?.(f)} />;
 
