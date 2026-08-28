@@ -438,7 +438,8 @@ export default function ProjectFormFields({ form, set, errors = {}, only = null,
               <Field key={f.name} label={typeof f.label === 'function' ? f.label(form) : f.label}
                      data-field-error={errors[f.name] ? 'true' : undefined}
                      className={`pf-w-${widthOf(f)}`}
-                     required={isRequired(f, form)} error={errors[f.name]}>
+                     required={isRequired(f, form)} error={errors[f.name]}
+                     showErrorText={!!errors[f.name] && !/is required$/.test(String(errors[f.name] || ''))}>
                 {renderField(f, form, set, errors, projectId, statusOptions, isAdmin, dropdownOptions, onFieldBlur)}
                 {(() => {
                   /*  Resolve BEFORE testing. f.help may be a function whose

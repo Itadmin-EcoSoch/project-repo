@@ -25,14 +25,27 @@ const api = axios.create({
 let authToken = null;
 export function setAuthToken(t) { authToken = t || null; }
 
-api.interceptors.request.use(cfg => {
-  if (authToken) cfg.headers.Authorization = `Bearer ${authToken}`;
-  return cfg;
-});
+/* ---- global loading signal (drives the page-load progress bar) ---- */
+let _pending = 0;
+const _loadSubs = new Set();
+const _emitLoading = () => _loadSubs.forEach(fn => { try { fn(_pending); } catch {} });
+export function onLoading(cb) { _loadSubs.add(cb); return () => _loadSubs.delete(cb); }
+const _incLoading = () => { _pending++; _emitLoading(); };
+const _decLoading = () => { _pending = Math.max(0, _pending - 1); _emitLoading(); };
+
+api.interceptors.request.use(
+  cfg => {
+    if (authToken) cfg.headers.Authorization = `Bearer ${authToken}`;
+    _incLoading();
+    return cfg;
+  },
+  err => { _decLoading(); return Promise.reject(err); }
+);
 
 api.interceptors.response.use(
-  res => res.data,
+  res => { _decLoading(); return res.data; },
   err => {
+    _decLoading();
     /*  A 403 means "you are signed in, but your role does not allow this".
         Bouncing to /login for that would be wrong and confusing — the message
         the API sent already says who can do it, so let it through to the

@@ -4,6 +4,7 @@ import { ThemeToggle } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import AccountDrawer from './AccountDrawer';
 import OverflowMenu  from './OverflowMenu';
+import ProgressBar   from './ProgressBar';
 
 const NAV = [
   { to:'/dashboard',  label:'Dashboard',  Icon:DashIcon,   page:'dashboard' },
@@ -102,6 +103,7 @@ export default function Layout({ children }) {
 
       {/* Content */}
       <main className="content-area">{children}</main>
+      <ProgressBar />
 
       {/* Bottom nav */}
       <nav className="bottom-nav">
