@@ -182,6 +182,13 @@ export default function AddProject() {
           ? 'Expected Installation Date must be on or before Expected Commissioning Date'
           : undefined;
       }
+      if (k === 'commissionedDate' || k === 'warrantyStart') {
+        const comm = k === 'commissionedDate' ? v : form.commissionedDate;
+        const ws   = k === 'commissionedDate' ? v : (k === 'warrantyStart' ? v : form.warrantyStart);
+        upd.commissionedDate = (comm && ws && String(comm) > String(ws))
+          ? 'Commissioned Date must be on or before Warranty Start Date'
+          : undefined;
+      }
       return upd;
     });
   };

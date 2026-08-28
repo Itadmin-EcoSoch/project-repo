@@ -1193,6 +1193,12 @@ export function validateProject(form) {
     errors.expInstDate = 'Expected Installation Date must be on or before Expected Commissioning Date';
   }
 
+  /*  Commissioned Date must be on or before Warranty Start Date. */
+  if (form.commissionedDate && form.warrantyStart &&
+      String(form.commissionedDate) > String(form.warrantyStart)) {
+    errors.commissionedDate = 'Commissioned Date must be on or before Warranty Start Date';
+  }
+
   /*  Every numeric field must be zero or positive — no negatives anywhere. */
   for (const f of ALL_FIELDS) {
     if (f.type !== 'number' && f.type !== 'currency' && f.type !== 'percent') continue;

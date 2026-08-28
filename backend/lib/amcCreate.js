@@ -349,7 +349,13 @@ async function createSolarCareAMC(body = {}) {
       "has AMC" filter both see it. AMC_Type on the project is the ROLL-UP of
       what was sold; the contracts remain the source of truth.               */
   try {
-    const label = types.length === 2 ? 'Inspection, Cleaning' : types[0];
+    /*  Roll up ALL AMC types on the project — existing contracts plus the ones
+        requested now — so adding a second type later (e.g. Inspection after
+        Cleaning) shows "Inspection, Cleaning" instead of overwriting to one.  */
+    const rolled = new Set([...existingTypes, ...types.map(t => String(t).toLowerCase())]);
+    const label = (rolled.has('inspection') && rolled.has('cleaning'))
+      ? 'Inspection, Cleaning'
+      : rolled.has('inspection') ? 'Inspection' : 'Cleaning';
     await db.update('projects', projectId, {
       AMC_Type    : label,
       AMC_Provided: true,
