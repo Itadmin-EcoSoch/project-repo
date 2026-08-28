@@ -169,7 +169,20 @@ export default function AddProject() {
 
   const set = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
-    setErrors(e => ({ ...e, [k]: undefined }));
+    setErrors(e => {
+      const upd = { ...e, [k]: undefined };
+      /*  Cross-field: Installation must be on/before Commissioning. Evaluated
+          the instant EITHER date changes, and the message always lands on the
+          Installation field so it flags immediately — no blur needed.       */
+      if (k === 'expInstDate' || k === 'expCommsnDate') {
+        const inst = k === 'expInstDate'  ? v : form.expInstDate;
+        const comm = k === 'expCommsnDate' ? v : form.expCommsnDate;
+        upd.expInstDate = (inst && comm && String(inst) > String(comm))
+          ? 'Expected Installation Date must be on or before Expected Commissioning Date'
+          : undefined;
+      }
+      return upd;
+    });
   };
 
   /*  "Is the client's billing address the same as the site's postal address?"
