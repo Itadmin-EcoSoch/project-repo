@@ -6,6 +6,40 @@
   <title>EcoSoch Project Repository</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="icon" id="favicon" type="image/svg+xml" href="/sun.svg"/>
+  <script>
+    /* Animated sun favicon — rotates a canvas-drawn sun so it animates in
+       Chrome/Edge too (SVG favicons only animate in Firefox). */
+    (function () {
+      var link = document.getElementById('favicon');
+      var s = 64, c = document.createElement('canvas');
+      c.width = s; c.height = s; var x = c.getContext('2d'), t = 0;
+      function draw() {
+        x.clearRect(0, 0, s, s);
+        var cx = s / 2, cy = s / 2, core = s * 0.20, rays = 12;
+        x.save(); x.translate(cx, cy); x.rotate(t);
+        x.strokeStyle = '#F59E0B'; x.lineCap = 'round'; x.lineWidth = s * 0.055;
+        for (var i = 0; i < rays; i++) {
+          var a = (i / rays) * Math.PI * 2, pulse = 1 + 0.14 * Math.sin(t * 3 + i);
+          var r1 = core + s * 0.10, r2 = core + s * 0.24 * pulse;
+          x.beginPath();
+          x.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
+          x.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
+          x.stroke();
+        }
+        x.restore();
+        var g = x.createRadialGradient(cx - core * 0.3, cy - core * 0.3, core * 0.2, cx, cy, core * 1.25);
+        g.addColorStop(0, '#FDE68A'); g.addColorStop(1, '#F59E0B');
+        x.fillStyle = g;
+        x.beginPath(); x.arc(cx, cy, core, 0, Math.PI * 2); x.fill();
+        link.type = 'image/png';
+        link.href = c.toDataURL('image/png');
+        t += 0.06;
+      }
+      draw();
+      setInterval(draw, 90);
+    })();
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 </head>
 <body>
