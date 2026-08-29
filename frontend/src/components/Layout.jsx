@@ -42,37 +42,37 @@ export default function Layout({ children }) {
   const base     = '/' + location.pathname.split('/')[1];
   const isDetail = location.pathname.split('/').length > 2;
   const isAMC    = base === '/amc';
-  const showBack = isDetail || isAMC;
-  /*  On the AMC contract screen the title sits centred in the banner. */
-  const isContract = location.pathname.startsWith('/amc/contracts');
-  const title    = isContract ? 'AMC Contract Details' : (TITLES[base] || 'EcoSoch');
+  const segs     = location.pathname.split('/').filter(Boolean);
+  const isContract      = location.pathname.startsWith('/amc/contracts');
+  const isProjectDetail = segs.length === 2 && segs[0] === 'projects';   // /projects/:id
+  /*  Which screens show a title in the banner (everything past a top level). */
+  const showTitle = isDetail || isAMC;
+  /*  Project and contract screens get a centred title. */
+  const centered  = isContract || isProjectDetail;
+  const title = isContract      ? 'AMC Contract Details'
+              : isProjectDetail ? 'Project Details'
+              : (TITLES[base] || 'EcoSoch');
 
   return (
     <div className="app-shell">
       {/* Topbar */}
       <header className="topbar" style={{ position: 'relative' }}>
         <div className="topbar-brand">
-          {showBack ? (
-            <button className="topbar-btn" onClick={() => navigate(-1)} title="Back">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            </button>
-          ) : (
-            <img
-              className="topbar-logo-img"
-              src="https://ecosoch.com/Images/white-logo.png"
-              alt="EcoSoch"
-              onClick={() => navigate('/dashboard')}
-              onError={e => {
-                /* if the logo can't load (offline, site down) fall back to text */
-                e.currentTarget.style.display = 'none';
-                const t = document.getElementById('brand-fallback');
-                if (t) t.style.display = 'inline';
-              }}
-            />
-          )}
-          {showBack
+          <img
+            className="topbar-logo-img"
+            src="https://ecosoch.com/Images/white-logo.png"
+            alt="EcoSoch"
+            onClick={() => navigate('/dashboard')}
+            onError={e => {
+              /* if the logo can't load (offline, site down) fall back to text */
+              e.currentTarget.style.display = 'none';
+              const t = document.getElementById('brand-fallback');
+              if (t) t.style.display = 'inline';
+            }}
+          />
+          {showTitle
             ? <span className="topbar-title"
-                    style={isContract
+                    style={centered
                       ? { position: 'absolute', left: '50%', top: '50%',
                           transform: 'translate(-50%, -50%)', pointerEvents: 'none' }
                       : undefined}>{title}</span>

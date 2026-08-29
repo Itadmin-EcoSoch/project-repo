@@ -83,7 +83,7 @@ export default function AMCContract() {
         {c.client_name && (
           <div style={{ fontSize: 11.5, marginTop: 2 }}>
             👤 {c.client_id
-              ? <span onClick={() => navigate(`/solar-care/clients/${encodeURIComponent(c.client_id)}`)}
+              ? <span onClick={() => navigate(`/clients/${encodeURIComponent(c.client_id)}`)}
                       style={{ color: '#7dd3fc', cursor: 'pointer', textDecoration: 'underline' }}>
                   {c.client_name}
                 </span>

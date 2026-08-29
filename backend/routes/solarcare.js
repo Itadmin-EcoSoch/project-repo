@@ -391,8 +391,21 @@ router.get('/contracts/:amcId', async (req, res, next) => {
     let project = null;
     if (contract.Project_ID) {
       const p = await db.get('projects', contract.Project_ID);
-      if (p) project = { id: p.Project_ID, name: p.Project_Name, client_id: p.Client_Id,
-                         client_name: p.Client_Name };
+      if (p) {
+        let clientId = p.Client_Id;
+        /*  Legacy/AppSheet rows sometimes have a blank Client_Id but a filled
+            Client_Name. Resolve the id by name so the client name can link.  */
+        if (!s(clientId) && s(p.Client_Name)) {
+          try {
+            const clients = await db.all('clients');
+            const norm = v => s(v).toLowerCase();
+            const match = clients.find(c => norm(c.Client_Name) === norm(p.Client_Name));
+            if (match) clientId = match.Client_Id;
+          } catch (e) { /* fall back to no link */ }
+        }
+        project = { id: p.Project_ID, name: p.Project_Name, client_id: clientId || null,
+                    client_name: p.Client_Name };
+      }
     }
 
     /*  The signed contract / quote file for this AMC, resolved to a Drive

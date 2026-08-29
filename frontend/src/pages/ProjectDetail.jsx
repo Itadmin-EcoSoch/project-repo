@@ -230,6 +230,10 @@ function Section({ title, icon, rows }) {
 export default function ProjectDetail() {
   const { id }   = useParams();
   const navigate = useNavigate();
+  const scrollToSection = id => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const location = useLocation();
 
   /*  ── FILE PATH -> DRIVE LINK ───────────────────────────────────────────
@@ -471,6 +475,10 @@ export default function ProjectDetail() {
           <div style={{display:'flex',gap:8,flexWrap:'wrap',flexShrink:0}}>
             <HeroAction icon="✏️" label="Edit"
                         onClick={()=>navigate(`/projects/${id}/edit`, { state:{ from: backTo } })} />
+            <HeroAction icon="📅" label="AMC Contracts"
+                        onClick={()=>scrollToSection('amc-contracts-section')} />
+            <HeroAction icon="📎" label="Attachments"
+                        onClick={()=>scrollToSection('attachments-section')} />
             <HeroAction icon="⚡" label="Solar Care" primary
                         onClick={()=>navigate(`/projects/${id}/solar-care`, { state:{ from: backTo } })} />
             <HeroAction icon="🎫" label="Raise a ticket"
@@ -535,7 +543,7 @@ export default function ProjectDetail() {
       </div>
 
       {/* AMC contracts — Related AMC Contracts table (AppSheet parity) */}
-      <div className="detail-section">
+      <div className="detail-section" id="amc-contracts-section" style={{ scrollMarginTop: 90 }}>
         <div className="detail-section-title">
           📅 Related AMC Contracts
           <span style={{background:'var(--slate-200)',color:'var(--text-muted)',borderRadius:10,padding:'1px 7px',fontSize:10,fontWeight:700,marginLeft:4}}>
@@ -585,7 +593,9 @@ export default function ProjectDetail() {
         }
       </div>
 
-      <Attachments projectId={id} />
+      <div id="attachments-section" style={{ scrollMarginTop: 90 }}>
+        <Attachments projectId={id} />
+      </div>
     </div>
   );
 }
