@@ -218,6 +218,14 @@ export default function EditProject() {
             same keys to '' from the row[undefined] reads above.            */
         const merged = { ...emptyProjectForm(), ...loaded, ...amcSeed,
                          projectName: p.name || '' };
+        /*  `loaded` sets fields absent on the row to '', which would clobber a
+            field's default (e.g. Warranty Period 5). Re-apply defaults where the
+            saved value is blank so defaults survive on the Edit screen too.    */
+        for (const f of ALL_FIELDS) {
+          if (f.default != null && (merged[f.name] === '' || merged[f.name] == null)) {
+            merged[f.name] = f.default;
+          }
+        }
         setForm(merged);
         setOriginal(merged);
         if (Array.isArray(p.status_options)) setStatusOptions(p.status_options);
