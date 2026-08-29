@@ -123,7 +123,11 @@ router.get('/', async (req, res, next) => {
 
           Deal_ID and Salesperson_Email are here because they are the other two
           things people paste in from an email or a quote.                    */
-      searchFields: 'Project_ID,Project_Name,Site_Area,Client_Name,Project_Region,Deal_ID,Salesperson_Email',
+      /*  Match on identifiers a user searches by (name, id, client, deal id).
+          Site_Area / Project_Region / Salesperson_Email were searched too, so
+          a project whose hidden region or salesperson email contained the
+          query surfaced with no visible reason — dropped for clearer results. */
+      searchFields: 'Project_ID,Project_Name,Client_Name,Deal_ID',
       where : Object.keys(where).length ? where : undefined,
       fields: LIST_FIELDS,
       sort  : 'Created_Date',
