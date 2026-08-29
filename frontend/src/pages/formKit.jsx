@@ -206,13 +206,26 @@ export function SInput({ value, onChange, type='text', placeholder, hasError, su
   );
 }
 
-export function SSelect({ value, onChange, options, hasError, placeholder, labels={}, onBlur }) {
+export function SSelect({ value, onChange, options, hasError, placeholder, labels={}, onBlur,
+                         optionStyles }) {
   const [foc, setFoc] = useState(false);
+  /*  optionStyles: { [value]: { fg, bg } } — colours each option and tints the
+      closed control to the selected option's colour (e.g. visit statuses).  */
+  const cur = optionStyles && optionStyles[value];
   return (
     <select value={value} onChange={onChange} onFocus={()=>setFoc(true)} onBlur={(e)=>{ setFoc(false); onBlur?.(e); }}
-      style={{ ...selectBase, ...(foc?inputFocus:{}), ...(hasError?inputErr:{}) }}>
+      style={{ ...selectBase, ...(foc?inputFocus:{}), ...(hasError?inputErr:{}),
+               ...(cur ? { color: cur.fg, fontWeight: 700 } : {}) }}>
       {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o=><option key={o} value={o}>{labels[o] || o}</option>)}
+      {options.map(o=>{
+        const st = optionStyles && optionStyles[o];
+        return (
+          <option key={o} value={o}
+            style={st ? { color: st.fg, background: st.bg, fontWeight: 700 } : undefined}>
+            {labels[o] || o}
+          </option>
+        );
+      })}
     </select>
   );
 }

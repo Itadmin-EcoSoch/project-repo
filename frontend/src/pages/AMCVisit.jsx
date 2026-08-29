@@ -13,7 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
-import { updateVisit, isVisitDone, VISIT_STATUSES,
+import { updateVisit, isVisitDone, VISIT_STATUSES, VISIT_STATUS_STYLE,
          normalizeVisitStatus, visitStatusStyle } from '../lib/solarcare';
 import { Loading, ErrorBox } from './ProjectSolarCare';
 import { SSelect, STextarea, Field, DateField } from './formKit';
@@ -131,7 +131,8 @@ export default function AMCVisit() {
         </Field>
 
         <Field label="Status">
-          <SSelect value={status} onChange={e => setStatus(e.target.value)} options={VISIT_STATUSES} />
+          <SSelect value={status} onChange={e => setStatus(e.target.value)}
+                   options={VISIT_STATUSES} optionStyles={VISIT_STATUS_STYLE} />
         </Field>
 
         <Field label="What was done">
@@ -150,18 +151,6 @@ export default function AMCVisit() {
             fileUrl={visit.report_file?.download || visit.report_file?.view || ''}
           />
         </Field>
-      </div>
-
-      <div className="detail-section">
-        <div className="detail-section-title">📋 Visit details</div>
-        {[
-          ['AMC type', visit.amc_type],
-        ].map(([label, value]) => (
-          <div key={label} className="detail-row">
-            <div className="d-label">{label}</div>
-            <div className="d-value" style={{ wordBreak: 'break-word' }}>{value || '—'}</div>
-          </div>
-        ))}
       </div>
 
       {dirty && (
