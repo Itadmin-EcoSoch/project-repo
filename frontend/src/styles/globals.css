@@ -1257,3 +1257,27 @@ html[data-theme="dark"] .row-action.primary:hover:not(:disabled) { color: #06281
 .map-tiles-dark {
   filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
 }
+
+/*  Map location search box (sits in the map toolbar) */
+.map-search {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--white); border: 1px solid var(--slate-200);
+  border-radius: 999px; padding: 3px 6px 3px 11px;
+  box-shadow: var(--shadow-sm); pointer-events: auto;
+}
+.map-search input {
+  border: none; background: transparent; outline: none;
+  font-size: 12px; font-family: inherit; color: var(--text-head);
+  width: 180px; min-width: 120px;
+}
+.map-search input::placeholder { color: var(--text-muted); }
+.map-search-x {
+  border: none; background: none; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; line-height: 1; padding: 0 2px;
+}
+.map-search-go {
+  border: none; cursor: pointer; border-radius: 999px;
+  background: var(--brand); color: #fff; font-size: 11px; font-weight: 700;
+  padding: 5px 12px;
+}
+.map-search-go:disabled { opacity: .6; cursor: default; }

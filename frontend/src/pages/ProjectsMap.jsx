@@ -57,6 +57,7 @@ export default function ProjectsMap() {
   const layerRef  = useRef(null);   // marker layer, cleared on every redraw
   const markerRef = useRef(new Map());  // project id -> circleMarker, for highlighting
   const fittedRef = useRef(false);  // only auto-fit once
+  const geoRef    = useRef(null);   // temporary pin for a location search
 
   const [projects, setProjects] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -246,6 +247,39 @@ export default function ProjectsMap() {
     );
   };
 
+  /* ---------- location search (OpenStreetMap Nominatim, keyless) ---------- */
+  const [placeQ, setPlaceQ] = useState('');
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoErr, setGeoErr]   = useState('');
+
+  const searchPlace = async e => {
+    e?.preventDefault?.();
+    const q = placeQ.trim();
+    const map = mapRef.current;
+    if (!q || !map) return;
+    setGeoBusy(true); setGeoErr('');
+    try {
+      /*  Bias to India; ask for one best match. Nominatim needs no key; the
+          browser sends a Referer which satisfies its usage policy.          */
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1'
+                + '&countrycodes=in&q=' + encodeURIComponent(q);
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      const arr = await res.json();
+      if (Array.isArray(arr) && arr.length) {
+        const { lat, lon, display_name } = arr[0];
+        map.flyTo([Number(lat), Number(lon)], 15, { duration: 0.9 });
+        if (geoRef.current) map.removeLayer(geoRef.current);
+        geoRef.current = L.circleMarker([Number(lat), Number(lon)], {
+          radius: 9, color: '#fff', weight: 3, fillColor: '#F59E0B', fillOpacity: 1,
+        }).addTo(map).bindTooltip(display_name || q, { direction: 'top', offset: [0, -8] });
+      } else {
+        setGeoErr('No place found');
+      }
+    } catch {
+      setGeoErr('Search failed');
+    } finally { setGeoBusy(false); }
+  };
+
   const fitAll = () => {
     const map = mapRef.current;
     if (!map || !visible.length) return;
@@ -272,6 +306,24 @@ export default function ProjectsMap() {
 
       {/* toolbar: status filters + fit button */}
       <div className="map-toolbar">
+        <form className="map-search" onSubmit={searchPlace}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input
+            value={placeQ}
+            onChange={e => { setPlaceQ(e.target.value); if (geoErr) setGeoErr(''); }}
+            placeholder="Search a location…"
+            aria-label="Search a location" />
+          {placeQ && (
+            <button type="button" className="map-search-x"
+              onClick={() => { setPlaceQ(''); setGeoErr(''); }} aria-label="Clear">×</button>
+          )}
+          <button type="submit" className="map-search-go" disabled={geoBusy}>
+            {geoBusy ? '…' : 'Go'}
+          </button>
+        </form>
+        {geoErr && <span className="map-count" style={{ color: 'var(--rose)' }}>{geoErr}</span>}
         {chips.map(c => (
           <button
             key={c.key}
