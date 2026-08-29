@@ -56,11 +56,11 @@ export default function AMCContract() {
       <div style={{ background: '#0f2c3f', padding: '18px 16px 20px' }}>
         <button
           onClick={() => c.project_id
-            ? navigate(`/projects/${encodeURIComponent(c.project_id)}/solar-care`)
+            ? navigate(`/projects/${encodeURIComponent(c.project_id)}`)
             : navigate(-1)}
           style={{ background: 'none', border: 0, color: 'rgba(255,255,255,.75)',
                    fontSize: 12, cursor: 'pointer', padding: 0, marginBottom: 10 }}>
-          ← Back to Solar Care
+          ← Back to Project
         </button>
 
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.11em',
@@ -71,11 +71,23 @@ export default function AMCContract() {
           {isInspection ? '🔍' : '🧽'} {c.amc_type || 'AMC'}
         </h1>
         {c.project_name && (
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.7)' }}>{c.project_name}</div>
+          <div style={{ fontSize: 12, marginTop: 1 }}>
+            {c.project_id
+              ? <span onClick={() => navigate(`/projects/${encodeURIComponent(c.project_id)}`)}
+                      style={{ color: '#7dd3fc', cursor: 'pointer', textDecoration: 'underline' }}>
+                  {c.project_name}
+                </span>
+              : <span style={{ color: 'rgba(255,255,255,.7)' }}>{c.project_name}</span>}
+          </div>
         )}
         {c.client_name && (
-          <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,.5)', marginTop: 2 }}>
-            👤 {c.client_name}
+          <div style={{ fontSize: 11.5, marginTop: 2 }}>
+            👤 {c.client_id
+              ? <span onClick={() => navigate(`/solar-care/clients/${encodeURIComponent(c.client_id)}`)}
+                      style={{ color: '#7dd3fc', cursor: 'pointer', textDecoration: 'underline' }}>
+                  {c.client_name}
+                </span>
+              : <span style={{ color: 'rgba(255,255,255,.5)' }}>{c.client_name}</span>}
           </div>
         )}
 

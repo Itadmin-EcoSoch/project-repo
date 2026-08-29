@@ -44,11 +44,13 @@ export default function Layout({ children }) {
   const isAMC    = base === '/amc';
   const title    = TITLES[base] || 'EcoSoch';
   const showBack = isDetail || isAMC;
+  /*  On the AMC contract screen the title sits centred in the banner. */
+  const isContract = location.pathname.startsWith('/amc/contracts');
 
   return (
     <div className="app-shell">
       {/* Topbar */}
-      <header className="topbar">
+      <header className="topbar" style={{ position: 'relative' }}>
         <div className="topbar-brand">
           {showBack ? (
             <button className="topbar-btn" onClick={() => navigate(-1)} title="Back">
@@ -69,7 +71,11 @@ export default function Layout({ children }) {
             />
           )}
           {showBack
-            ? <span className="topbar-title">{title}</span>
+            ? <span className="topbar-title"
+                    style={isContract
+                      ? { position: 'absolute', left: '50%', top: '50%',
+                          transform: 'translate(-50%, -50%)', pointerEvents: 'none' }
+                      : undefined}>{title}</span>
             : <span className="topbar-title" id="brand-fallback" style={{ display: 'none' }}>EcoSoch</span>}
         </div>
 
