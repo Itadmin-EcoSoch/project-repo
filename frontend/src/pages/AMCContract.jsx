@@ -19,7 +19,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getContract, fmtDate } from '../lib/solarcare';
+import { getContract, fmtDate, normalizeVisitStatus, visitStatusStyle } from '../lib/solarcare';
 import { Loading, ErrorBox } from './ProjectSolarCare';
 
 export default function AMCContract() {
@@ -174,23 +174,31 @@ export default function AMCContract() {
                      onClick={() => navigate(`/amc/visits/${encodeURIComponent(v.task_id)}`)}
                      style={{ padding: '11px 14px', borderBottom: '1px solid var(--slate-50)',
                               display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer' }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 11, fontWeight: 800,
-                                background: v.is_done ? '#DCFCE7' : 'var(--slate-100)',
-                                color: v.is_done ? '#15803D' : 'var(--text-muted)' }}>
-                    {v.is_done ? '✓' : v.visit_no}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-head)' }}>
-                      {v.label}
-                    </div>
-                    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                      Due {fmtDate(v.due_date)}
-                    </div>
-                  </div>
-                  <span className={v.is_done ? 'badge-done' : 'badge-pending'}>{v.status}</span>
-                  <span style={{ color: 'var(--text-muted)', fontSize: 15 }}>›</span>
+                  {(() => {
+                    const st  = normalizeVisitStatus(v.status);
+                    const stl = visitStatusStyle(v.status);
+                    const glyph = st === 'Done' ? '✓' : st === 'Skipped' ? '⊘' : v.visit_no;
+                    return (<>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: 11, fontWeight: 800,
+                                    background: st === 'Pending' ? 'var(--slate-100)' : stl.bg,
+                                    color: st === 'Pending' ? 'var(--text-muted)' : stl.fg }}>
+                        {glyph}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-head)' }}>
+                          {v.label}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                          Due {fmtDate(v.due_date)}
+                        </div>
+                      </div>
+                      <span style={{ background: stl.bg, color: stl.fg, borderRadius: 8,
+                                     padding: '2px 8px', fontSize: 10, fontWeight: 700 }}>{st}</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 15 }}>›</span>
+                    </>);
+                  })()}
                 </div>
               ))
         )}

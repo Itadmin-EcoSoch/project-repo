@@ -72,7 +72,6 @@ export const TICKET_TYPES = [
 export const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Critical'];
 export const TICKET_STATUSES   = ['Open', 'In Progress', 'On Hold', 'Resolved', 'Closed', 'Cancelled'];
 
-export const VISIT_STATUSES = ['Scheduled', 'In Progress', 'Done', 'Skipped'];
 
 /*  Date of the last scheduled visit — identical formula to
     backend/lib/amcSchedule.js's amcEndDate(), so AMCSetup.jsx can show it
@@ -146,6 +145,26 @@ export const PAYMENT_FREQ_BY_VISITS = {
 
 export const isTicketClosed = s => /closed|resolved|cancelled|done/i.test(String(s || ''));
 export const isVisitDone    = s => /done|complete/i.test(String(s || ''));
+export const isVisitSkipped = s => /skip/i.test(String(s || ''));
+
+/*  Visit status vocabulary — only these three. Legacy rows (Scheduled /
+    In Progress / blank) read as Pending.                                    */
+export const VISIT_STATUSES = ['Pending', 'Done', 'Skipped'];
+
+export const normalizeVisitStatus = s => {
+  const v = String(s || '').trim();
+  if (/done|complete/i.test(v)) return 'Done';
+  if (/skip/i.test(v))          return 'Skipped';
+  return 'Pending';                       // Scheduled / In Progress / '' -> Pending
+};
+
+/*  Badge colours: Pending = dark orange, Done = green, Skipped = red. */
+export const VISIT_STATUS_STYLE = {
+  Pending: { bg: '#FFEDD5', fg: '#C2410C' },
+  Done:    { bg: '#DCFCE7', fg: '#15803D' },
+  Skipped: { bg: '#FEE2E2', fg: '#B91C1C' },
+};
+export const visitStatusStyle = s => VISIT_STATUS_STYLE[normalizeVisitStatus(s)] || VISIT_STATUS_STYLE.Pending;
 
 export const fmtDate = d => {
   if (!d) return '—';

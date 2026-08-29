@@ -18,13 +18,17 @@
 
 const s           = v => String(v ?? '').trim();
 const visitDone   = v => /done|complete/i.test(s(v.AMC_Task_Status || v.Status));
+/*  A visit no longer needs attention once it is Done OR Skipped — both count
+    as "finished" for deciding whether the contract is complete. (visitDone
+    stays Done-only, because the progress bar counts completed visits.)      */
+const visitFinished = v => /done|complete|skip/i.test(s(v.AMC_Task_Status || v.Status));
 const paymentDone = p =>
   /\b(paid|received|settled|done|complete)\b/i.test(s(p.Payment_Status || p.Status));
 
-/** True when every visit and every payment for this contract is finished. */
+/** True when every visit is Done/Skipped and every payment is done. */
 function contractComplete(visits = [], payments = []) {
   if (!visits.length) return false;                 // nothing scheduled yet
-  if (!visits.every(visitDone)) return false;
+  if (!visits.every(visitFinished)) return false;
   if (payments.length && !payments.every(paymentDone)) return false;
   return true;
 }
@@ -63,4 +67,4 @@ async function syncContractStatus(db, amcId) {
   }
 }
 
-module.exports = { visitDone, paymentDone, contractComplete, effectiveStatus, syncContractStatus };
+module.exports = { visitDone, visitFinished, paymentDone, contractComplete, effectiveStatus, syncContractStatus };

@@ -13,7 +13,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
-import { updateVisit, isVisitDone, VISIT_STATUSES } from '../lib/solarcare';
+import { updateVisit, isVisitDone, VISIT_STATUSES,
+         normalizeVisitStatus, visitStatusStyle } from '../lib/solarcare';
 import { Loading, ErrorBox } from './ProjectSolarCare';
 import { SSelect, STextarea, Field, DateField } from './formKit';
 import FileField from './FileField';
@@ -53,7 +54,7 @@ export default function AMCVisit() {
       .then(r => {
         const v = r?.data ?? r;
         setVisit(v);
-        setStatus(v.status || 'Scheduled');
+        setStatus(normalizeVisitStatus(v.status));
         setResolution(v.resolution || '');
         setDueDate(toISO(v.due_date));
         setReport(v.report || '');
@@ -66,7 +67,7 @@ export default function AMCVisit() {
   useEffect(() => { load(); }, [load]);
 
   const dirty = visit && (
-    status     !== (visit.status || 'Scheduled') ||
+    status     !== normalizeVisitStatus(visit.status) ||
     resolution !== (visit.resolution || '') ||
     dueDate    !== toISO(visit.due_date) ||
     report     !== (visit.report || '')
@@ -87,7 +88,6 @@ export default function AMCVisit() {
   if (error)   return <ErrorBox message={error} onRetry={load} />;
   if (!visit)  return null;
 
-  const done = isVisitDone(visit.status);
 
   return (
     <div style={{ background: 'var(--slate-100)', minHeight: '100%', paddingBottom: 90 }}>
@@ -116,9 +116,10 @@ export default function AMCVisit() {
         )}
 
         <span style={{ display: 'inline-block', marginTop: 12, padding: '3px 11px',
-                       borderRadius: 11, fontSize: 11, fontWeight: 700, color: '#fff',
-                       background: done ? '#22c55e' : 'var(--amber)' }}>
-          {visit.status || 'Scheduled'}
+                       borderRadius: 11, fontSize: 11, fontWeight: 700,
+                       background: visitStatusStyle(visit.status).bg,
+                       color: visitStatusStyle(visit.status).fg }}>
+          {normalizeVisitStatus(visit.status)}
         </span>
       </div>
 
