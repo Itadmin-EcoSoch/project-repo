@@ -24,11 +24,8 @@ router.get('/', async (req, res, next) => {
       q,
       /*  Client_Id added for the same reason as Project_ID on the projects
           route — pasting an id from the sheet or a URL should find the row.  */
-      /*  Search only the identifiers a user actually searches by and can see in
-          the result — name, phone, id. Email/Address were included before, so a
-          client whose hidden email/address contained the query (e.g. 'test')
-          surfaced even though its name did not, which read as a broken search. */
-      searchFields: 'Client_Id,Client_Name,Client_Mobile',
+      /*  Search clients by name and email only. */
+      searchFields: 'Client_Name,Client_Email',
       reverse: true,          // newest rows are at the bottom of the sheet
 
       limit : Number(limit),
