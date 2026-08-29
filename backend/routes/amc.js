@@ -9,6 +9,8 @@ const db = require('../db/sheets');
 const { MAP, toApp, toSheet } = require('../lib/mapping');
 const { newAmcTaskId } = require('../lib/uniqueId');
 const { syncContractStatus } = require('../lib/amcStatus');
+const { planReschedule } = require('../lib/amcReschedule');
+const { parseDate } = require('../lib/amcSchedule');
 
 /* GET /api/amc?project_id=&status=&limit= */
 router.get('/', async (req, res, next) => {
@@ -98,10 +100,46 @@ router.patch('/:id', async (req, res, next) => {
   try {
     const patch = toSheet(MAP.amc_tasks, req.body);
     delete patch.AMC_Task_Id;
+
+    /*  Capture the due date BEFORE the write, so a due-date edit can be
+        detected and the rest of the schedule cascaded if it collides.       */
+    let before = null;
+    if (Object.prototype.hasOwnProperty.call(patch, 'AMC_Due_Date')) {
+      try { before = await db.get('amc_tasks', req.params.id); } catch (e) {}
+    }
+
     const saved = await db.update('amc_tasks', req.params.id, patch);
-    /*  A visit's status just changed, so the parent contract may now be fully
-        done (-> Completed) or reopened (-> Active). Keep AMC_Status in step.  */
-    const amcId = saved.AMC_Id || patch.AMC_Id;
+    const amcId = saved.AMC_Id || patch.AMC_Id || (before && before.AMC_Id);
+
+    /*  Due date moved: if it now overlaps the next visit, push the following
+        visits forward by the contract frequency, and grow the contract end
+        date to the last visit if needed.                                    */
+    const beforeT = before && parseDate(before.AMC_Due_Date);
+    const afterT  = parseDate(patch.AMC_Due_Date);
+    const dueChanged = before &&
+      (beforeT ? beforeT.getTime() : null) !== (afterT ? afterT.getTime() : null);
+    if (dueChanged && amcId) {
+      try {
+        const contract = await db.get('amc_contracts', amcId);
+        if (contract) {
+          const all = await db.all('amc_tasks');
+          const siblings = all.filter(t => String(t.AMC_Id) === String(amcId));
+          const plan = planReschedule(
+            contract, siblings, req.params.id,
+            before.AMC_Due_Date, patch.AMC_Due_Date,
+          );
+          for (const u of plan.updates) {
+            await db.update('amc_tasks', u.id, { AMC_Due_Date: u.due_date });
+          }
+          if (plan.newContractEnd) {
+            await db.update('amc_contracts', amcId, { AMC_End_Date: plan.newContractEnd });
+          }
+        }
+      } catch (e) { /* reschedule is best-effort; the edit itself already saved */ }
+    }
+
+    /*  A visit's status may also have changed, so the parent contract may now
+        be fully done (-> Completed) or reopened (-> Active). Keep it in step. */
     if (amcId) await syncContractStatus(db, amcId);
     res.json({ success: true, data: toApp(MAP.amc_tasks, saved) });
   } catch (err) { next(err); }
