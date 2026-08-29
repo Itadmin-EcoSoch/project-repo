@@ -99,33 +99,27 @@ export default function AMCVisit() {
 
   const NavArrow = ({ side, id }) => {
     const enabled = Boolean(id);
+    const label = side === 'left' ? 'Previous' : 'Next';
     return (
       <button
         onClick={() => go(id)}
         disabled={!enabled}
         aria-label={side === 'left' ? 'Previous visit' : 'Next visit'}
         style={{
-          position: 'fixed', top: '50%', transform: 'translateY(-50%)',
-          [side]: 14, zIndex: 30,
-          width: 44, height: 44, borderRadius: '50%',
-          border: '1px solid var(--slate-200)',
-          background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, lineHeight: 1, fontWeight: 700,
-          color: enabled ? 'var(--text-head)' : 'var(--slate-200)',
-          cursor: enabled ? 'pointer' : 'default',
-          opacity: enabled ? 1 : 0.5,
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          height: 36, padding: '0 12px', borderRadius: 10,
+          border: '1px solid var(--slate-200)', background: '#fff',
+          fontSize: 12.5, fontWeight: 700,
+          color: enabled ? 'var(--text-head)' : 'var(--slate-300)',
+          cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.55,
         }}>
-        {side === 'left' ? '‹' : '›'}
+        {side === 'left' ? <>‹ {label}</> : <>{label} ›</>}
       </button>
     );
   };
 
   return (
     <div style={{ background: 'var(--slate-100)', minHeight: '100%', paddingBottom: 90 }}>
-
-      <NavArrow side="left"  id={visit.prev_task_id} />
-      <NavArrow side="right" id={visit.next_task_id} />
 
       <div style={{ background: '#0f2c3f', padding: '18px 16px 20px' }}>
         <button
@@ -156,6 +150,19 @@ export default function AMCVisit() {
                        color: visitStatusStyle(visit.status).fg }}>
           {normalizeVisitStatus(visit.status)}
         </span>
+      </div>
+
+      {/* prev / next visit navigation, sitting above the form so it never
+          overlaps the fields */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    gap: 10, padding: '12px 16px 0' }}>
+        <NavArrow side="left"  id={visit.prev_task_id} />
+        {visit.visit_no && visit.visit_count
+          ? <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)' }}>
+              Visit {visit.visit_no} of {visit.visit_count}
+            </span>
+          : <span />}
+        <NavArrow side="right" id={visit.next_task_id} />
       </div>
 
       <div className="detail-section">
