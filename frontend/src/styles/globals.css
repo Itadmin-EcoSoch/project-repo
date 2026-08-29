@@ -98,7 +98,9 @@
 }
 .topbar-title {
   font-family: 'Space Grotesk', sans-serif;
-  color: var(--white);
+  /* the topbar is always dark navy in both themes, so keep the title a true
+     light colour — var(--white) flips to a dark surface colour in dark mode. */
+  color: #FFFFFF;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: -.01em;

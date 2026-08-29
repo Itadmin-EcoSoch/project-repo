@@ -336,7 +336,18 @@ router.get('/projects/:projectId', async (req, res, next) => {
       if (c) client = { id: c.Client_Id, name: c.Client_Name, phone: c.Client_Mobile,
                         email: c.Client_Email };
     }
-    if (!client && project.Client_Name) client = { id: null, name: project.Client_Name };
+    /*  Legacy/AppSheet rows sometimes lack Client_Id but have Client_Name.
+        Resolve the id by name so the client name can hyperlink.            */
+    if (!client && project.Client_Name) {
+      let byName = null;
+      try {
+        const clients = await db.all('clients');
+        byName = clients.find(c => s(c.Client_Name).toLowerCase() === s(project.Client_Name).toLowerCase()) || null;
+      } catch (e) { /* fall back to unlinked */ }
+      client = byName
+        ? { id: byName.Client_Id, name: byName.Client_Name, phone: byName.Client_Mobile, email: byName.Client_Email }
+        : { id: null, name: project.Client_Name };
+    }
 
     const pid         = s(project.Project_ID);
     const projTickets = numberedForProject(tickets, pid);
