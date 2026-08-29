@@ -222,6 +222,7 @@ export default function EditProject() {
             field's default (e.g. Warranty Period 5). Re-apply defaults where the
             saved value is blank so defaults survive on the Edit screen too.    */
         for (const f of ALL_FIELDS) {
+          if (f.transient) continue;                 // never re-arm isNew on Edit
           if (f.default != null && (merged[f.name] === '' || merged[f.name] == null)) {
             merged[f.name] = f.default;
           }
