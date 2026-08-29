@@ -124,16 +124,15 @@ export default function AMCContract() {
             ['Files related to the contract',    fileVal],
           ];
           return (
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '58%' }} />
-                <col style={{ width: '42%' }} />
-              </colgroup>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'auto' }}>
               <tbody>
                 {rows.map(([label, value], i) => (
                   <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--slate-50)' : 'none' }}>
+                    {/*  width:1% + nowrap shrinks the label column to its widest
+                        label, so values sit right next to their labels.       */}
                     <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-muted)',
-                                 fontWeight: 500, verticalAlign: 'top', wordBreak: 'break-word' }}>
+                                 fontWeight: 500, verticalAlign: 'top',
+                                 width: '1%', whiteSpace: 'nowrap', paddingRight: 28 }}>
                       {label}
                     </td>
                     <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text-head)',
