@@ -31,6 +31,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../lib/api';
 import { PROJECT_SECTIONS, fromProjectRow, isVisible } from '../lib/projectFields';
 import { canonicalStatus, statusLabel } from '../lib/status';
+import { contractStatusStyle, normalizeContractStatus } from '../lib/solarcare';
 
 const STATUS_BADGE = {
   'Active':            { bg:'#D1FAE5', color:'#065F46' },
@@ -558,9 +559,7 @@ export default function ProjectDetail() {
                 </thead>
                 <tbody>
                   {amcContracts.map(c => {
-                    const st = String(c.status || 'Active');
-                    // Active and Completed are both healthy states -> green
-                    const good = /^(active|completed)$/i.test(st);
+                    const cst = contractStatusStyle(c.status);
                     return (
                       <tr key={c.amc_id}
                         onClick={() => navigate(`/amc/contracts/${encodeURIComponent(c.amc_id)}`)}
@@ -570,7 +569,10 @@ export default function ProjectDetail() {
                         <td style={{padding:'11px 14px',color:'var(--text-body)'}}>{fmtDate(c.start_date)}</td>
                         <td style={{padding:'11px 14px',color:'var(--text-body)'}}>{fmtDate(c.end_date)}</td>
                         <td style={{padding:'11px 14px'}}>
-                          <span className={good ? 'badge-done' : 'badge-pending'}>{st}</span>
+                          <span style={{background:cst.bg,color:cst.fg,borderRadius:8,
+                                        padding:'3px 10px',fontSize:11,fontWeight:700,display:'inline-block'}}>
+                            {normalizeContractStatus(c.status)}
+                          </span>
                         </td>
                         <td style={{padding:'11px 6px',color:'var(--text-muted)',fontSize:15,textAlign:'right'}}>›</td>
                       </tr>

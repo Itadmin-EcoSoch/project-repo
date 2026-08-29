@@ -19,7 +19,8 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getContract, fmtDate, normalizeVisitStatus, visitStatusStyle } from '../lib/solarcare';
+import { getContract, fmtDate, normalizeVisitStatus, visitStatusStyle,
+         contractStatusStyle, normalizeContractStatus } from '../lib/solarcare';
 import { Loading, ErrorBox } from './ProjectSolarCare';
 
 export default function AMCContract() {
@@ -117,7 +118,13 @@ export default function AMCContract() {
             ['Total visits',                     data.total_visits],
             [`Start Date of ${t} Contract`,      fmtDate(c.start_date)],
             [`End Date of ${t} Contract`,        fmtDate(c.end_date)],
-            ['Status of contract',               c.status],
+            ['Status of contract',
+              (() => { const st = contractStatusStyle(c.status); return (
+                <span style={{ background: st.bg, color: st.fg, borderRadius: 8,
+                               padding: '3px 10px', fontSize: 11.5, fontWeight: 700,
+                               display: 'inline-block' }}>
+                  {normalizeContractStatus(c.status)}
+                </span>); })()],
             [`Are periodic payments available for this ${t} contract?`,
               paysYes ? `Yes · ${data.payments.length} instalment${data.payments.length === 1 ? '' : 's'}` : 'No'],
             /* renamed for the saved/view state, per request */

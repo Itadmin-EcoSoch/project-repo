@@ -166,6 +166,25 @@ export const VISIT_STATUS_STYLE = {
 };
 export const visitStatusStyle = s => VISIT_STATUS_STYLE[normalizeVisitStatus(s)] || VISIT_STATUS_STYLE.Pending;
 
+/*  Contract status badge colours (solid bg, white text):
+    Active = orange, Completed = green, Defaulted = red.                     */
+export const CONTRACT_STATUS_STYLE = {
+  Active:    { bg: '#EA580C', fg: '#ffffff' },
+  Completed: { bg: '#16A34A', fg: '#ffffff' },
+  Defaulted: { bg: '#DC2626', fg: '#ffffff' },
+};
+export const normalizeContractStatus = s => {
+  const v = String(s || '').trim();
+  if (/complete/i.test(v)) return 'Completed';
+  if (/default/i.test(v))  return 'Defaulted';
+  if (/active/i.test(v))   return 'Active';
+  return v || 'Active';
+};
+export const contractStatusStyle = s => {
+  const st = normalizeContractStatus(s);
+  return CONTRACT_STATUS_STYLE[st] || { bg: '#64748B', fg: '#ffffff' };
+};
+
 export const fmtDate = d => {
   if (!d) return '—';
   const x = new Date(d);

@@ -107,11 +107,11 @@ export default function AMCVisit() {
         aria-label={side === 'left' ? 'Previous visit' : 'Next visit'}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          height: 36, padding: '0 12px', borderRadius: 10,
-          border: '1px solid var(--slate-200)', background: '#fff',
+          height: 36, padding: '0 14px', borderRadius: 10,
+          border: '1px solid #FDBA74', background: '#FFEDD5',
           fontSize: 12.5, fontWeight: 700,
-          color: enabled ? 'var(--text-head)' : 'var(--slate-300)',
-          cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.55,
+          color: enabled ? '#C2410C' : '#EA580C',
+          cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.45,
         }}>
         {side === 'left' ? <>‹ {label}</> : <>{label} ›</>}
       </button>
