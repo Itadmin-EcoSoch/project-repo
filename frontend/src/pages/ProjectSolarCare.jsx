@@ -51,20 +51,21 @@ export default function ProjectSolarCare() {
       <div style={{ background: 'var(--slate-900)', padding: '16px 16px 18px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -24, right: -24, width: 130, height: 130,
                       borderRadius: '50%', background: 'rgba(0,135,90,.12)' }} />
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase',
-                      color: 'rgba(255,255,255,.45)' }}>Solar Care</div>
-
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginTop: 5, lineHeight: 1.35 }}>
-          {project.name}
+        <div style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.35 }}>
+          <span onClick={() => navigate(`/projects/${encodeURIComponent(project.id || id)}`)}
+                style={{ color: '#7dd3fc', cursor: 'pointer', textDecoration: 'underline' }}>
+            {project.name}
+          </span>
         </div>
 
         {client && (
-          <div
-            onClick={() => client.id && navigate(`/solar-care/clients/${encodeURIComponent(client.id)}`)}
-            style={{ fontSize: 11.5, color: 'rgba(255,255,255,.65)', marginTop: 4,
-                     cursor: client.id ? 'pointer' : 'default',
-                     textDecoration: client.id ? 'underline' : 'none' }}>
-            👤 {client.name}
+          <div style={{ fontSize: 11.5, marginTop: 4 }}>
+            👤 {client.id
+              ? <span onClick={() => navigate(`/clients/${encodeURIComponent(client.id)}`)}
+                      style={{ color: '#7dd3fc', cursor: 'pointer', textDecoration: 'underline' }}>
+                  {client.name}
+                </span>
+              : <span style={{ color: 'rgba(255,255,255,.65)' }}>{client.name}</span>}
           </div>
         )}
 
