@@ -42,10 +42,10 @@ export default function Layout({ children }) {
   const base     = '/' + location.pathname.split('/')[1];
   const isDetail = location.pathname.split('/').length > 2;
   const isAMC    = base === '/amc';
-  const title    = TITLES[base] || 'EcoSoch';
   const showBack = isDetail || isAMC;
   /*  On the AMC contract screen the title sits centred in the banner. */
   const isContract = location.pathname.startsWith('/amc/contracts');
+  const title    = isContract ? 'AMC Contract Details' : (TITLES[base] || 'EcoSoch');
 
   return (
     <div className="app-shell">
