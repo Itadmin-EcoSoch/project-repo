@@ -385,6 +385,31 @@ router.get('/visits/:taskId', async (req, res, next) => {
       try { projectName = (await db.get('projects', pid))?.Project_Name || null; } catch (e) {}
     }
 
+    /*  Previous / next visit on the SAME contract, so the visit screen can
+        offer left/right navigation. Ordered by due date, tie-broken by the
+        "- N" sequence in the description.                                   */
+    let prevTaskId = null, nextTaskId = null, visitNo = null, visitCount = null;
+    if (t.AMC_Id) {
+      try {
+        const all = await db.all('amc_tasks');
+        const seqOf = r => { const m = String(r.AMC_Description || '').match(/-\s*(\d+)\s*$/); return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER; };
+        const siblings = all
+          .filter(r => String(r.AMC_Id) === String(t.AMC_Id))
+          .sort((a, b) => {
+            const av = amc.parseDate(a.AMC_Due_Date), bv = amc.parseDate(b.AMC_Due_Date);
+            const at = av ? av.getTime() : Infinity, bt = bv ? bv.getTime() : Infinity;
+            return at - bt || seqOf(a) - seqOf(b);
+          });
+        const idx = siblings.findIndex(r => String(r.AMC_Task_Id) === String(t.AMC_Task_Id));
+        if (idx !== -1) {
+          visitNo    = idx + 1;
+          visitCount = siblings.length;
+          if (idx > 0)                   prevTaskId = siblings[idx - 1].AMC_Task_Id;
+          if (idx < siblings.length - 1) nextTaskId = siblings[idx + 1].AMC_Task_Id;
+        }
+      } catch (e) { /* navigation is a nice-to-have */ }
+    }
+
     /*  The visit report is a Drive file path (AMC_Task_Report). Resolve it to a
         download link so the visit screen can show the uploaded file.        */
     let reportFile = null;
@@ -415,6 +440,10 @@ router.get('/visits/:taskId', async (req, res, next) => {
         payment_id  : t.Payment_Id,
         project_id  : pid,
         project_name: projectName,
+        prev_task_id: prevTaskId,
+        next_task_id: nextTaskId,
+        visit_no    : visitNo,
+        visit_count : visitCount,
       },
     });
   } catch (err) { next(err); }

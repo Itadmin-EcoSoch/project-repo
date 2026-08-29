@@ -84,13 +84,48 @@ export default function AMCVisit() {
     } finally { setSaving(false); }
   }
 
+  /*  Jump to the previous / next visit on the same contract. Guards unsaved
+      edits so an arrow tap does not silently discard a half-recorded visit. */
+  function go(id) {
+    if (!id) return;
+    if (dirty && !window.confirm('Discard unsaved changes and move to the other visit?')) return;
+    navigate(`/amc/visits/${encodeURIComponent(id)}`);
+  }
+
   if (loading) return <Loading label="Loading visit…" />;
   if (error)   return <ErrorBox message={error} onRetry={load} />;
   if (!visit)  return null;
 
 
+  const NavArrow = ({ side, id }) => {
+    const enabled = Boolean(id);
+    return (
+      <button
+        onClick={() => go(id)}
+        disabled={!enabled}
+        aria-label={side === 'left' ? 'Previous visit' : 'Next visit'}
+        style={{
+          position: 'fixed', top: '50%', transform: 'translateY(-50%)',
+          [side]: 14, zIndex: 30,
+          width: 44, height: 44, borderRadius: '50%',
+          border: '1px solid var(--slate-200)',
+          background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, lineHeight: 1, fontWeight: 700,
+          color: enabled ? 'var(--text-head)' : 'var(--slate-200)',
+          cursor: enabled ? 'pointer' : 'default',
+          opacity: enabled ? 1 : 0.5,
+        }}>
+        {side === 'left' ? '‹' : '›'}
+      </button>
+    );
+  };
+
   return (
     <div style={{ background: 'var(--slate-100)', minHeight: '100%', paddingBottom: 90 }}>
+
+      <NavArrow side="left"  id={visit.prev_task_id} />
+      <NavArrow side="right" id={visit.next_task_id} />
 
       <div style={{ background: '#0f2c3f', padding: '18px 16px 20px' }}>
         <button
