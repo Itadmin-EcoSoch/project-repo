@@ -1252,3 +1252,8 @@ html[data-theme="dark"] .row-action.primary:hover:not(:disabled) { color: #06281
   font-size: 11.5px; font-weight: 700; color: var(--text-body);
 }
 .att-retry:hover { border-color: var(--brand); color: var(--brand); }
+/*  Map: OSM has no dark basemap, so dark mode inverts the light tiles.
+    Applied to the Leaflet tile layer via its className (see ProjectsMap.jsx). */
+.map-tiles-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}

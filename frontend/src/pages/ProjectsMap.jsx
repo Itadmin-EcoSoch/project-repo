@@ -28,14 +28,22 @@ const BENGALURU = [12.9716, 77.5946];
     a single pin colour and a single legend chip. */
 const colourFor = statusPin;
 
+/*  Keyless OpenStreetMap tiles. CARTO's basemaps now stamp an "API KEY
+    REQUIRED" watermark on anonymous tiles, so we use OSM directly. OSM has no
+    dark style, so dark mode reuses the same tiles under a CSS invert filter
+    (className 'map-tiles-dark' — see globals.css).                          */
 const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+    className: '',
   },
   dark: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; OpenStreetMap contributors',
+    subdomains: 'abc',
+    className: 'map-tiles-dark',
   },
 };
 
@@ -133,7 +141,9 @@ export default function ProjectsMap() {
     if (tileRef.current) map.removeLayer(tileRef.current);
     const t = TILES[isDark ? 'dark' : 'light'];
     tileRef.current = L.tileLayer(t.url, {
-      attribution: t.attribution, maxZoom: 19, subdomains: 'abcd', detectRetina: true,
+      attribution: t.attribution, maxZoom: 19,
+      subdomains: t.subdomains || 'abc', detectRetina: false,
+      className: t.className || '',
     }).addTo(map);
   }, [isDark]);
 
