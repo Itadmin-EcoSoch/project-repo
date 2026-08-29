@@ -130,7 +130,7 @@ export default function ProjectSolarCare() {
       {/* ── operation 2: AMC ─────────────────────────────────────────── */}
       <div className="detail-section">
         <div className="detail-section-title" style={{ display: 'flex', alignItems: 'center' }}>
-          🔧 AMC
+          🔧 Related AMC Contracts
           <span className="sec-count" style={{ marginLeft: 6 }}>{amc.count}</span>
           <button
             onClick={() => navigate(`/projects/${encodeURIComponent(id)}/amc/new`)}
@@ -210,11 +210,6 @@ export default function ProjectSolarCare() {
         )}
       </div>
 
-      <div style={{ padding: '4px 16px 0' }}>
-        <button onClick={() => navigate(`/projects/${encodeURIComponent(id)}`)} style={linkBtn}>
-          ← Full project record
-        </button>
-      </div>
     </div>
   );
 }

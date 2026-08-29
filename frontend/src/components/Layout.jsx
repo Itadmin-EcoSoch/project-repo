@@ -45,12 +45,14 @@ export default function Layout({ children }) {
   const segs     = location.pathname.split('/').filter(Boolean);
   const isContract      = location.pathname.startsWith('/amc/contracts');
   const isProjectDetail = segs.length === 2 && segs[0] === 'projects';   // /projects/:id
+  const isSolarCare     = segs.length === 3 && segs[0] === 'projects' && segs[2] === 'solar-care';
   /*  Which screens show a title in the banner (everything past a top level). */
   const showTitle = isDetail || isAMC;
-  /*  Project and contract screens get a centred title. */
-  const centered  = isContract || isProjectDetail;
+  /*  Project, SolarCare and contract screens get a centred title. */
+  const centered  = isContract || isProjectDetail || isSolarCare;
   const title = isContract      ? 'AMC Contract Details'
               : isProjectDetail ? 'Project Details'
+              : isSolarCare     ? 'SolarCare Details'
               : (TITLES[base] || 'EcoSoch');
 
   return (
