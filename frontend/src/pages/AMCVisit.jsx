@@ -4,20 +4,34 @@
 
         Client → Project → AMC → Contract → THIS VISIT
 
-    WHAT CHANGED FROM THE OLD VERSION
-    The old page was read-only and displayed raw sheet column names, so a
-    completed visit could never be recorded and the progress bars upstream never
-    moved. This one lets you set the status and write a resolution, which is what
-    makes "3 of 12 visits completed" mean anything.
+    Recordable fields: Status, What was done, Due date (dates can move), and the
+    visit Report — a Drive file upload (max 2 MB) that can be viewed once set and
+    replaced at any time from the same control.
 --------------------------------------------------------------------------- */
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
-import { updateVisit, isVisitDone, fmtDate, VISIT_STATUSES } from '../lib/solarcare';
+import { updateVisit, isVisitDone, VISIT_STATUSES } from '../lib/solarcare';
 import { Loading, ErrorBox } from './ProjectSolarCare';
-import { SSelect, STextarea, Field } from './formKit';
+import { SSelect, STextarea, Field, DateField } from './formKit';
+import FileField from './FileField';
+
+/*  Sheet dates come back in mixed shapes (yyyy-mm-dd, dd/mm/yyyy, an ISO
+    datetime). DateField only understands yyyy-mm-dd, so normalise on the way in. */
+function toISO(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${String(dmy[2]).padStart(2,'0')}-${String(dmy[1]).padStart(2,'0')}`;
+  const d = new Date(s);
+  if (!isNaN(d)) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  return '';
+}
 
 export default function AMCVisit() {
   const { taskId } = useParams();
@@ -30,6 +44,8 @@ export default function AMCVisit() {
 
   const [status, setStatus]         = useState('');
   const [resolution, setResolution] = useState('');
+  const [dueDate, setDueDate]       = useState('');
+  const [report, setReport]         = useState('');   // Drive path of the report file
 
   const load = useCallback(() => {
     setLoad(true);
@@ -39,6 +55,8 @@ export default function AMCVisit() {
         setVisit(v);
         setStatus(v.status || 'Scheduled');
         setResolution(v.resolution || '');
+        setDueDate(toISO(v.due_date));
+        setReport(v.report || '');
         setError(null);
       })
       .catch(e => setError(e.message || 'Could not load the visit'))
@@ -47,13 +65,17 @@ export default function AMCVisit() {
 
   useEffect(() => { load(); }, [load]);
 
-  const dirty = visit && (status !== (visit.status || 'Scheduled') ||
-                          resolution !== (visit.resolution || ''));
+  const dirty = visit && (
+    status     !== (visit.status || 'Scheduled') ||
+    resolution !== (visit.resolution || '') ||
+    dueDate    !== toISO(visit.due_date) ||
+    report     !== (visit.report || '')
+  );
 
   async function save() {
     setSaving(true);
     try {
-      await updateVisit(taskId, { status, resolution });
+      await updateVisit(taskId, { status, resolution, due_date: dueDate, report });
       toast.success(isVisitDone(status) ? 'Visit marked done' : 'Visit updated');
       await load();
     } catch (e) {
@@ -103,6 +125,10 @@ export default function AMCVisit() {
       <div className="detail-section">
         <div className="detail-section-title">✅ Record this visit</div>
 
+        <Field label="Due date">
+          <DateField value={dueDate} onChange={setDueDate} />
+        </Field>
+
         <Field label="Status">
           <SSelect value={status} onChange={e => setStatus(e.target.value)} options={VISIT_STATUSES} />
         </Field>
@@ -111,16 +137,24 @@ export default function AMCVisit() {
           <STextarea value={resolution} onChange={e => setResolution(e.target.value)}
                      placeholder="Readings taken, panels cleaned, faults found — whatever the client should see" />
         </Field>
+
+        <Field label="Report">
+          <FileField
+            value={report}
+            onChange={setReport}
+            column="AMC_Task_Report"
+            projectId={visit.project_id || ''}
+            maxSizeMB={2}
+            displayName={visit.report_file?.name}
+            fileUrl={visit.report_file?.download || visit.report_file?.view || ''}
+          />
+        </Field>
       </div>
 
       <div className="detail-section">
         <div className="detail-section-title">📋 Visit details</div>
         {[
-          ['Due date',    fmtDate(visit.due_date)],
-          ['AMC type',    visit.amc_type],
-          ['Contract',    visit.amc_id],
-          ['Visit ID',    visit.task_id || taskId],
-          ['Report',      visit.report],
+          ['AMC type', visit.amc_type],
         ].map(([label, value]) => (
           <div key={label} className="detail-row">
             <div className="d-label">{label}</div>

@@ -50,7 +50,7 @@ const prettySize = b =>
   b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
 
 export default function FileField({ value, onChange, column, projectId, hasError, maxSizeMB,
-                                    displayName, onNameChange }) {
+                                    displayName, onNameChange, fileUrl }) {
   const ref = useRef(null);
   const [ready,   setReady]   = useState(!uploadDisabled);
   const [busy,    setBusy]    = useState(false);
@@ -222,8 +222,8 @@ export default function FileField({ value, onChange, column, projectId, hasError
                    that opens the file picker, so without it, clicking the
                    link would ALSO pop the "choose a file" dialog over the
                    tab that just opened.                                   */
-               ? (url
-                   ? <a href={url}
+               ? ((url || fileUrl)
+                   ? <a href={url || fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={e => e.stopPropagation()}

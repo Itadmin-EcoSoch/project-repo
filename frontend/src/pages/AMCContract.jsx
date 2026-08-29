@@ -93,12 +93,24 @@ export default function AMCContract() {
         </div>
       </div>
 
-      {/* terms — labels mirror the AppSheet contract form, keyed to the AMC type */}
+      {/* terms — labels mirror the AppSheet contract form, keyed to the AMC type.
+          Rendered as a real 2-column table so every value lines up in one
+          column regardless of how long each label is.                       */}
       <div className="detail-section">
         <div className="detail-section-title">📄 Contract terms</div>
         {(() => {
           const t = String(c.amc_type || 'AMC').trim();               // "Cleaning" / "Inspection"
           const paysYes = /^(y|yes|true)$/i.test(String(c.payment_available || ''));
+          const fileVal = c.contract_file && (c.contract_file.download || c.contract_file.view)
+            ? <a href={c.contract_file.download || c.contract_file.view}
+                 target="_blank" rel="noopener noreferrer"
+                 style={{ color: 'var(--brand, #0f766e)', fontWeight: 600,
+                          textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                📄 {c.contract_file.name || 'Open file'}
+              </a>
+            : (c.contract_file && c.contract_file.name
+                ? <span title="File is recorded but could not be resolved from Drive">📄 {c.contract_file.name}</span>
+                : '—');
           const rows = [
             [`How many ${t} visits every year?`, c.frequency],
             ['For how many years?',              c.period_years],
@@ -108,35 +120,33 @@ export default function AMCContract() {
             ['Status of contract',               c.status],
             [`Are periodic payments available for this ${t} contract?`,
               paysYes ? `Yes · ${data.payments.length} instalment${data.payments.length === 1 ? '' : 's'}` : 'No'],
+            /* renamed for the saved/view state, per request */
+            ['Files related to the contract',    fileVal],
           ];
-          return rows.map(([label, value]) => (
-            <div key={label} className="detail-row">
-              <div className="d-label">{label}</div>
-              <div className="d-value">
-                {value === null || value === undefined || value === '' ? '—' : String(value)}
-              </div>
-            </div>
-          ));
+          return (
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '58%' }} />
+                <col style={{ width: '42%' }} />
+              </colgroup>
+              <tbody>
+                {rows.map(([label, value], i) => (
+                  <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--slate-50)' : 'none' }}>
+                    <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--text-muted)',
+                                 fontWeight: 500, verticalAlign: 'top', wordBreak: 'break-word' }}>
+                      {label}
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text-head)',
+                                 fontWeight: 500, verticalAlign: 'top', wordBreak: 'break-word' }}>
+                      {value === null || value === undefined || value === '' ? '—'
+                        : (typeof value === 'object' ? value : String(value))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          );
         })()}
-
-        {/* contract file link */}
-        <div className="detail-row">
-          <div className="d-label">Attach files related to the contract</div>
-          <div className="d-value">
-            {c.contract_file && (c.contract_file.download || c.contract_file.view)
-              ? <a href={c.contract_file.download || c.contract_file.view}
-                   target="_blank" rel="noopener noreferrer"
-                   style={{ color: 'var(--brand, #0f766e)', fontWeight: 600,
-                            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  📄 {c.contract_file.name || 'Open file'}
-                </a>
-              : (c.contract_file && c.contract_file.name
-                  ? <span title="File is recorded but could not be resolved from Drive">
-                      📄 {c.contract_file.name}
-                    </span>
-                  : '—')}
-          </div>
-        </div>
       </div>
 
       {/* visits / payments */}

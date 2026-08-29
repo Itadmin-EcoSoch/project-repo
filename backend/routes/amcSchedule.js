@@ -385,6 +385,21 @@ router.get('/visits/:taskId', async (req, res, next) => {
       try { projectName = (await db.get('projects', pid))?.Project_Name || null; } catch (e) {}
     }
 
+    /*  The visit report is a Drive file path (AMC_Task_Report). Resolve it to a
+        download link so the visit screen can show the uploaded file.        */
+    let reportFile = null;
+    const rp = String(t.AMC_Task_Report || '').trim();
+    if (rp && rp.includes('/')) {
+      try {
+        const resolved = await db.resolveFiles([rp]);
+        const f = resolved[rp] || null;
+        reportFile = {
+          path: rp, name: f?.name || rp.split('/').pop(),
+          found: Boolean(f && f.id), view: f?.view ?? null, download: f?.download ?? null,
+        };
+      } catch { reportFile = { path: rp, name: rp.split('/').pop(), found: false }; }
+    }
+
     res.json({
       success: true,
       data: {
@@ -394,6 +409,7 @@ router.get('/visits/:taskId', async (req, res, next) => {
         status      : t.AMC_Task_Status || 'Pending',
         resolution  : t.AMC_Resolution,
         report      : t.AMC_Task_Report,
+        report_file : reportFile,
         amc_type    : t.AMC_Type,
         amc_id      : t.AMC_Id,
         payment_id  : t.Payment_Id,
