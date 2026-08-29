@@ -533,10 +533,10 @@ export default function ProjectDetail() {
         </div>
       </div>
 
-      {/* AMC contracts */}
+      {/* AMC contracts — Related AMC Contracts table (AppSheet parity) */}
       <div className="detail-section">
         <div className="detail-section-title">
-          📅 AMC Contracts
+          📅 Related AMC Contracts
           <span style={{background:'var(--slate-200)',color:'var(--text-muted)',borderRadius:10,padding:'1px 7px',fontSize:10,fontWeight:700,marginLeft:4}}>
             {amcContracts.length}
           </span>
@@ -544,37 +544,42 @@ export default function ProjectDetail() {
 
         {amcContracts.length === 0
           ? <div style={{padding:'20px',textAlign:'center',color:'var(--text-muted)',fontSize:12}}>No AMC contracts</div>
-          : amcContracts.map(c => {
-              const pct = c.progress_pct ?? (c.total_visits ? Math.round((c.completed_visits / c.total_visits) * 100) : 0);
-              return (
-                <div key={c.amc_id}
-                  onClick={() => navigate(`/amc/contracts/${encodeURIComponent(c.amc_id)}`)}
-                  style={{padding:'12px 14px',borderBottom:'1px solid var(--slate-50)',cursor:'pointer'}}>
-
-                  <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:700,color:'var(--text-head)'}}>{c.amc_type}</div>
-                      <div style={{fontSize:10.5,color:'var(--text-muted)',marginTop:2}}>
-                        {c.frequency} visits/year · {c.period_years} year{c.period_years > 1 ? 's' : ''}
-                        {c.next_visit_date ? ` · next ${String(c.next_visit_date).slice(0,10)}` : ''}
-                      </div>
-                    </div>
-                    <span className={c.status === 'Active' ? 'badge-done' : 'badge-pending'}>{c.status}</span>
-                    <span style={{color:'var(--text-muted)',fontSize:15}}>›</span>
-                  </div>
-
-                  <div style={{marginTop:8}}>
-                    <div style={{display:'flex',justifyContent:'space-between',fontSize:10.5,color:'var(--text-muted)',marginBottom:4}}>
-                      <span><b style={{color:'var(--text-head)'}}>{c.completed_visits}</b> of <b style={{color:'var(--text-head)'}}>{c.total_visits}</b> visits completed</span>
-                      <span>{c.pending_visits} pending</span>
-                    </div>
-                    <div style={{height:5,borderRadius:3,background:'var(--slate-200)'}}>
-                      <div style={{width:`${pct}%`,height:'100%',borderRadius:3,background:'#22c55e'}}/>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
+          : (
+            <div style={{overflowX:'auto'}}>
+              <table className="amc-rel-table" style={{width:'100%',borderCollapse:'collapse',fontSize:12.5}}>
+                <thead>
+                  <tr style={{textAlign:'left',color:'var(--text-muted)',fontSize:11,textTransform:'uppercase',letterSpacing:'.03em'}}>
+                    <th style={{padding:'8px 14px',fontWeight:700,borderBottom:'1px solid var(--slate-200)'}}>Type of AMC Contract</th>
+                    <th style={{padding:'8px 14px',fontWeight:700,borderBottom:'1px solid var(--slate-200)'}}>Start Date of Contract</th>
+                    <th style={{padding:'8px 14px',fontWeight:700,borderBottom:'1px solid var(--slate-200)'}}>End Date of Contract</th>
+                    <th style={{padding:'8px 14px',fontWeight:700,borderBottom:'1px solid var(--slate-200)'}}>Status of contract</th>
+                    <th style={{padding:'8px 6px',borderBottom:'1px solid var(--slate-200)'}}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {amcContracts.map(c => {
+                    const st = String(c.status || 'Active');
+                    // Active and Completed are both healthy states -> green
+                    const good = /^(active|completed)$/i.test(st);
+                    return (
+                      <tr key={c.amc_id}
+                        onClick={() => navigate(`/amc/contracts/${encodeURIComponent(c.amc_id)}`)}
+                        style={{cursor:'pointer',borderBottom:'1px solid var(--slate-50)'}}
+                        className="amc-rel-row">
+                        <td style={{padding:'11px 14px',fontWeight:700,color:'var(--text-head)'}}>{c.amc_type || '—'}</td>
+                        <td style={{padding:'11px 14px',color:'var(--text-body)'}}>{fmtDate(c.start_date)}</td>
+                        <td style={{padding:'11px 14px',color:'var(--text-body)'}}>{fmtDate(c.end_date)}</td>
+                        <td style={{padding:'11px 14px'}}>
+                          <span className={good ? 'badge-done' : 'badge-pending'}>{st}</span>
+                        </td>
+                        <td style={{padding:'11px 6px',color:'var(--text-muted)',fontSize:15,textAlign:'right'}}>›</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
         }
       </div>
 

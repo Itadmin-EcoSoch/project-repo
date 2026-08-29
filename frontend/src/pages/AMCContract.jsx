@@ -93,26 +93,50 @@ export default function AMCContract() {
         </div>
       </div>
 
-      {/* terms */}
+      {/* terms — labels mirror the AppSheet contract form, keyed to the AMC type */}
       <div className="detail-section">
         <div className="detail-section-title">📄 Contract terms</div>
-        {[
-          ['Visits per year',   c.frequency],
-          ['For how many years', c.period_years],
-          ['Total visits',      data.total_visits],
-          ['Start date',        fmtDate(c.start_date)],
-          ['Last visit',        fmtDate(c.end_date)],
-          ['Status',            c.status],
-          ['Payments',          /^(y|yes|true)$/i.test(String(c.payment_available || ''))
-                                  ? `Yes · ${data.payments.length} instalments` : 'No'],
-        ].map(([label, value]) => (
-          <div key={label} className="detail-row">
-            <div className="d-label">{label}</div>
-            <div className="d-value">
-              {value === null || value === undefined || value === '' ? '—' : String(value)}
+        {(() => {
+          const t = String(c.amc_type || 'AMC').trim();               // "Cleaning" / "Inspection"
+          const paysYes = /^(y|yes|true)$/i.test(String(c.payment_available || ''));
+          const rows = [
+            [`How many ${t} visits every year?`, c.frequency],
+            ['For how many years?',              c.period_years],
+            ['Total visits',                     data.total_visits],
+            [`Start Date of ${t} Contract`,      fmtDate(c.start_date)],
+            [`End Date of ${t} Contract`,        fmtDate(c.end_date)],
+            ['Status of contract',               c.status],
+            [`Are periodic payments available for this ${t} contract?`,
+              paysYes ? `Yes · ${data.payments.length} instalment${data.payments.length === 1 ? '' : 's'}` : 'No'],
+          ];
+          return rows.map(([label, value]) => (
+            <div key={label} className="detail-row">
+              <div className="d-label">{label}</div>
+              <div className="d-value">
+                {value === null || value === undefined || value === '' ? '—' : String(value)}
+              </div>
             </div>
+          ));
+        })()}
+
+        {/* contract file link */}
+        <div className="detail-row">
+          <div className="d-label">Attach files related to the contract</div>
+          <div className="d-value">
+            {c.contract_file && (c.contract_file.download || c.contract_file.view)
+              ? <a href={c.contract_file.download || c.contract_file.view}
+                   target="_blank" rel="noopener noreferrer"
+                   style={{ color: 'var(--brand, #0f766e)', fontWeight: 600,
+                            textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  📄 {c.contract_file.name || 'Open file'}
+                </a>
+              : (c.contract_file && c.contract_file.name
+                  ? <span title="File is recorded but could not be resolved from Drive">
+                      📄 {c.contract_file.name}
+                    </span>
+                  : '—')}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* visits / payments */}

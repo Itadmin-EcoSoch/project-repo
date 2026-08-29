@@ -34,6 +34,7 @@ const router  = express.Router();
 
 const db = require('../db/sheets');
 const { numberedForProject, summarise, isClosed } = require('./tickets');
+const { effectiveStatus } = require('../lib/amcStatus');
 
 /* ── shared helpers ──────────────────────────────────────────────────── */
 
@@ -99,16 +100,31 @@ function indexVisits(allContracts, allVisits) {
   return byId;
 }
 
+/** Map<AMC_Id, payments[]> so a contract's status can factor in its payments. */
+function indexPayments(allPayments = []) {
+  const m = new Map();
+  for (const p of allPayments) {
+    const id = s(p.AMC_Id);
+    if (!id) continue;
+    if (!m.has(id)) m.set(id, []);
+    m.get(id).push(p);
+  }
+  return m;
+}
+
 /** One contract, summarised for a list row. */
-function contractSummary(contract, visitIndex) {
+function contractSummary(contract, visitIndex, paymentIndex) {
   const visits    = visitIndex.get(s(contract.AMC_Id)) || [];
+  const payments  = (paymentIndex && paymentIndex.get(s(contract.AMC_Id))) || [];
   const completed = visits.filter(visitDone).length;
   const next      = visits.find(v => !visitDone(v));
 
   return {
     amc_id          : contract.AMC_Id,
     amc_type        : contract.AMC_Type,
-    status          : contract.AMC_Status,
+    /*  Derived so a fully-done contract reads "Completed" even before a write
+        has synced AMC_Status; syncContractStatus keeps the sheet itself right. */
+    status          : effectiveStatus(contract, visits, payments),
     /* visits per year — the "how many site visits per year" answer */
     frequency       : contract.AMC_Frequency,
     /* how many years the contract runs */
@@ -128,11 +144,11 @@ function contractSummary(contract, visitIndex) {
 
 /** Every AMC contract on a project, ordered Cleaning / Inspection alphabetically
  *  so the two rows never swap places between renders. */
-function contractsForProject(projectId, allContracts, visitIndex) {
+function contractsForProject(projectId, allContracts, visitIndex, paymentIndex) {
   const pid = s(projectId);
   return allContracts
     .filter(c => s(c.Project_ID) === pid)
-    .map(c => contractSummary(c, visitIndex))
+    .map(c => contractSummary(c, visitIndex, paymentIndex))
     .sort((a, b) => s(a.amc_type).localeCompare(s(b.amc_type)));
 }
 
@@ -158,6 +174,8 @@ router.get('/clients', async (req, res, next) => {
       db.all('clients'), db.all('projects'), db.all('amc_contracts'),
       db.all('amc_tasks'), db.all('tickets'),
     ]);
+    const payments = await db.all('amc_payments');
+    const paymentIndex = indexPayments(payments);
 
     /* index once, then walk clients — otherwise this is O(clients × projects) */
     const ticketsByProject = new Map();
@@ -234,17 +252,19 @@ router.get('/clients/:clientId', async (req, res, next) => {
     const client = await db.get('clients', req.params.clientId);
     if (!client) return res.status(404).json({ success: false, error: 'Client not found' });
 
-    const [projects, contracts, visits, tickets] = await Promise.all([
-      db.all('projects'), db.all('amc_contracts'), db.all('amc_tasks'), db.all('tickets'),
+    const [projects, contracts, visits, tickets, payments] = await Promise.all([
+      db.all('projects'), db.all('amc_contracts'), db.all('amc_tasks'),
+      db.all('tickets'), db.all('amc_payments'),
     ]);
 
-    const mine       = projectsForClient(client, projects);
-    const visitIndex = indexVisits(contracts, visits);
+    const mine         = projectsForClient(client, projects);
+    const visitIndex   = indexVisits(contracts, visits);
+    const paymentIndex = indexPayments(payments);
 
     const out = mine.map(p => {
       const pid         = s(p.Project_ID);
       const projTickets = numberedForProject(tickets, pid);
-      const amc         = contractsForProject(pid, contracts, visitIndex);
+      const amc         = contractsForProject(pid, contracts, visitIndex, paymentIndex);
 
       return {
         id        : p.Project_ID,
@@ -304,9 +324,11 @@ router.get('/projects/:projectId', async (req, res, next) => {
     const project = await db.get('projects', req.params.projectId);
     if (!project) return res.status(404).json({ success: false, error: 'Project not found' });
 
-    const [contracts, visits, tickets] = await Promise.all([
+    const [contracts, visits, tickets, payments] = await Promise.all([
       db.all('amc_contracts'), db.all('amc_tasks'), db.all('tickets'),
+      db.all('amc_payments'),
     ]);
+    const paymentIndex = indexPayments(payments);
 
     let client = null;
     if (project.Client_Id) {
@@ -318,7 +340,7 @@ router.get('/projects/:projectId', async (req, res, next) => {
 
     const pid         = s(project.Project_ID);
     const projTickets = numberedForProject(tickets, pid);
-    const amc         = contractsForProject(pid, contracts, indexVisits(contracts, visits));
+    const amc         = contractsForProject(pid, contracts, indexVisits(contracts, visits), paymentIndex);
 
     res.json({
       success: true,
@@ -361,7 +383,9 @@ router.get('/contracts/:amcId', async (req, res, next) => {
       db.all('amc_contracts'), db.all('amc_tasks'), db.all('amc_payments'),
     ]);
 
-    const mine = indexVisits(contracts, visits).get(s(contract.AMC_Id)) || [];
+    const visitIndex   = indexVisits(contracts, visits);
+    const paymentIndex = indexPayments(payments);
+    const mine = visitIndex.get(s(contract.AMC_Id)) || [];
     const done = mine.filter(visitDone).length;
 
     let project = null;
@@ -371,11 +395,30 @@ router.get('/contracts/:amcId', async (req, res, next) => {
                          client_name: p.Client_Name };
     }
 
+    /*  The signed contract / quote file for this AMC, resolved to a Drive
+        download link the same way project attachments are.                 */
+    let contractFile = null;
+    const filePath = s(contract.AMC_Contract_Files);
+    if (filePath && filePath.includes('/')) {
+      try {
+        const resolved = await db.resolveFiles([filePath]);
+        const f = resolved[filePath] || null;
+        contractFile = {
+          path    : filePath,
+          name    : f?.name || filePath.split('/').pop(),
+          found   : Boolean(f && f.id),
+          view    : f?.view ?? null,
+          download: f?.download ?? null,
+        };
+      } catch { contractFile = { path: filePath, name: filePath.split('/').pop(), found: false }; }
+    }
+
     res.json({
       success: true,
       data: {
         contract: {
-          ...contractSummary(contract, indexVisits(contracts, visits)),
+          ...contractSummary(contract, visitIndex, paymentIndex),
+          contract_file    : contractFile,
           project_id  : contract.Project_ID,
           project_name: project?.name || contract.Project_Name || null,
           client_id   : project?.client_id || null,

@@ -8,6 +8,7 @@ const router  = express.Router();
 const db = require('../db/sheets');
 const { MAP, toApp, toSheet } = require('../lib/mapping');
 const { newAmcTaskId } = require('../lib/uniqueId');
+const { syncContractStatus } = require('../lib/amcStatus');
 
 /* GET /api/amc?project_id=&status=&limit= */
 router.get('/', async (req, res, next) => {
@@ -98,6 +99,10 @@ router.patch('/:id', async (req, res, next) => {
     const patch = toSheet(MAP.amc_tasks, req.body);
     delete patch.AMC_Task_Id;
     const saved = await db.update('amc_tasks', req.params.id, patch);
+    /*  A visit's status just changed, so the parent contract may now be fully
+        done (-> Completed) or reopened (-> Active). Keep AMC_Status in step.  */
+    const amcId = saved.AMC_Id || patch.AMC_Id;
+    if (amcId) await syncContractStatus(db, amcId);
     res.json({ success: true, data: toApp(MAP.amc_tasks, saved) });
   } catch (err) { next(err); }
 });
