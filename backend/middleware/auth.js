@@ -27,7 +27,7 @@ const jwt  = require('jsonwebtoken');
 const perm = require('../lib/permissions');
 
 const SECRET       = process.env.JWT_SECRET || 'change-me-in-env';
-const REQUIRE_AUTH = String(process.env.REQUIRE_AUTH || 'false').toLowerCase() === 'true';
+const REQUIRE_AUTH = String(process.env.REQUIRE_AUTH || 'true').toLowerCase() === 'true';
 
 /*  Routes reachable without a session token, even when REQUIRE_AUTH is on.
 

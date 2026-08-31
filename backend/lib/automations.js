@@ -197,7 +197,7 @@ async function botSolarCareEmail(before, after) {
   }
 
   const { sendMail } = require('../utils/mailer');
-  const testMode = String(process.env.NEW_ORDER_TEST_MODE ?? 'true').toLowerCase() === 'true';
+  const testMode = String(process.env.NEW_ORDER_TEST_MODE ?? 'false').toLowerCase() === 'true';
   const to = testMode
     ? [process.env.NEW_ORDER_TEST_RECIPIENT || 'venkat@ecosoch.com']
     : [SOLARCARE_TEAM];
