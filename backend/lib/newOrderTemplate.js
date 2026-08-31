@@ -121,7 +121,7 @@ const CLIENT_ROWS = [
 const PROJECT_ROWS = [
   { col: 'Project_ID',              label: 'Project Id' },
   { col: 'Deal_ID',                 label: 'Deal ID in Zoho',   type: 'url' },
-  { col: 'Proposal_Model',          label: 'Proposal Model',     bold: true },
+  { col: 'Proposal_Model',          label: 'Proposal Model',     bold: true, color: '#D32F2F' },
   { col: 'Project_Name',            label: 'Project Name' },
   { col: 'Project_Size',            label: 'Capacity (in kWp)',  type: 'decimal3' },
   { col: 'Project_Type',            label: 'Type of Project' },
@@ -340,6 +340,7 @@ function section(title, rows, source, files, opts) {
        column is what made the horizontal rules look broken. */
     const zebra = i++ % 2 ? '#fcfdfd' : '#ffffff';
     const bold  = row.bold ? 'font-weight:bold;' : '';
+    const color = row.color ? `color:${row.color};` : '';
 
     const cell = blank(raw)
       ? `<span style="${S.empty}">&mdash;</span>`
@@ -348,7 +349,7 @@ function section(title, rows, source, files, opts) {
     return (
       `<tr>` +
         `<td width="220" style="${S.label}">${esc(row.label)}</td>` +
-        `<td style="${S.value};background:${zebra};${bold}">${cell}</td>` +
+        `<td style="${S.value};background:${zebra};${bold}${color}">${cell}</td>` +
       `</tr>`
     );
   }).join('');
