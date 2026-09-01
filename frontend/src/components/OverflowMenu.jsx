@@ -137,10 +137,8 @@ export default function OverflowMenu() {
   items.push({ label: 'Copy link', icon: '🔗', onClick: copyLink });
   items.push({ label: busy ? 'Reloading…' : 'Reload from sheet', icon: '🔄', onClick: reload });
 
-  const deletable = ['project', 'client', 'ticket'].includes(ctx.kind);
-  if (deletable && can('delete')) {
-    items.push({ label: `Delete ${ctx.kind}`, icon: '🗑', onClick: remove, danger: true });
-  }
+  /*  Deletion is intentionally not offered anywhere in the UI — records are
+      only ever added or updated from the front end, never removed. */
 
   return (
     <div ref={boxRef} style={{ position: 'relative' }}>

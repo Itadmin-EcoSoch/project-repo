@@ -181,15 +181,7 @@ export default function TicketDetail() {
         ))}
       </div>
 
-      {/* Delete is Admin-only. The API refuses it too, so this is the
-          courtesy, not the control. */}
-      {can('delete') && <div style={{ padding: '6px 16px 0' }}>
-        <button onClick={remove}
-                style={{ background: 'none', border: 'none', color: C.danger,
-                         fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '8px 0' }}>
-          Delete this ticket
-        </button>
-      </div>}
+      {/* Deletion removed from the UI — tickets are only added or updated. */}
 
       {/* the save bar only appears once something has actually changed */}
       {dirty && (
