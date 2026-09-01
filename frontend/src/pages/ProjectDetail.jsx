@@ -32,6 +32,7 @@ import api from '../lib/api';
 import { PROJECT_SECTIONS, fromProjectRow, isVisible } from '../lib/projectFields';
 import { canonicalStatus, statusLabel } from '../lib/status';
 import { contractStatusStyle, normalizeContractStatus } from '../lib/solarcare';
+import NewOrderEmailModal from '../components/NewOrderEmailModal';
 
 const STATUS_BADGE = {
   'Active':            { bg:'#D1FAE5', color:'#065F46' },
@@ -234,6 +235,7 @@ export default function ProjectDetail() {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+  const [emailOpen, setEmailOpen] = useState(false);
   const location = useLocation();
 
   /*  ── FILE PATH -> DRIVE LINK ───────────────────────────────────────────
@@ -479,6 +481,8 @@ export default function ProjectDetail() {
                         onClick={()=>scrollToSection('amc-contracts-section')} />
             <HeroAction icon="📎" label="Attachments"
                         onClick={()=>scrollToSection('attachments-section')} />
+            <HeroAction icon="✉️" label="New Order Email"
+                        onClick={()=>setEmailOpen(true)} />
             <HeroAction icon="⚡" label="Solar Care" primary
                         onClick={()=>navigate(`/projects/${id}/solar-care`, { state:{ from: backTo } })} />
             <HeroAction icon="🎫" label="Raise a ticket"
@@ -596,6 +600,12 @@ export default function ProjectDetail() {
       <div id="attachments-section" style={{ scrollMarginTop: 90 }}>
         <Attachments projectId={id} />
       </div>
+
+      <NewOrderEmailModal
+        projectId={emailOpen ? id : null}
+        projectName={proj.name}
+        mode="new"
+        onClose={() => setEmailOpen(false)} />
     </div>
   );
 }
