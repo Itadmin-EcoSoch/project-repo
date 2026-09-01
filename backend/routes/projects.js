@@ -193,7 +193,10 @@ router.get('/:id/attachments', async (req, res, next) => {
 
     const wanted = ATTACHMENTS
       .map(a => ({ ...a, path: String(row[a.col] || '').trim() }))
-      .filter(a => a.path && a.path.includes('/'));      // ignore stray TRUE/FALSE values
+      /*  Keep real file references (folder path OR filename with an extension),
+          drop AppSheet's stray TRUE/FALSE checkbox values. Requiring a slash
+          alone dropped files stored as a bare "ID.Column.random.ext" name.  */
+      .filter(a => a.path && !/^(true|false)$/i.test(a.path) && (a.path.includes('/') || a.path.includes('.')));
 
     if (!wanted.length) return res.json({ success: true, data: [] });
 

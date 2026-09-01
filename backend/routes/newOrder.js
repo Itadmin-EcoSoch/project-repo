@@ -128,7 +128,12 @@ async function resolveAttachments(project) {
   const paths = FILE_COLUMNS
     .flatMap(col => String(project[col] || '').split(','))
     .map(s => s.trim())
-    .filter(p => p && p.includes('/'));
+    /*  Keep real file references, drop AppSheet's stray TRUE/FALSE checkbox
+        values. A reference either has a folder slash OR looks like a filename
+        (has a dot-extension). Requiring a slash alone silently dropped every
+        file stored as a bare "ID.Column.random.ext" name — no link, no
+        attachment — which is what this fixes.                              */
+    .filter(p => p && !/^(true|false)$/i.test(p) && (p.includes('/') || p.includes('.')));
 
   if (!paths.length) return {};
   return withTimeout(db.resolveFiles(paths), ATTACHMENT_TIMEOUT_MS, {}, 'attachment lookup');
