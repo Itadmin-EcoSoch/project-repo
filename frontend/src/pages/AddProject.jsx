@@ -413,13 +413,29 @@ export default function AddProject() {
           already succeeded; it only means the email itself needs sending
           by hand afterward, from the project's own page.                  */
       if (out.project_id) {
-        api.post(`/api/new-order/${encodeURIComponent(out.project_id)}/send`, { force: false })
-          .then(res => {
+        /*  Send the New Order Form. The server refuses (HTTP 422) if the just-
+            uploaded files are not yet resolvable in Drive, so the email never
+            goes out without its attachments. Drive can take a little while to
+            index a fresh upload, so retry a few times before giving up.      */
+        const pid = out.project_id;
+        const sendOrder = async (tries = 4) => {
+          try {
+            const res  = await api.post(`/api/new-order/${encodeURIComponent(pid)}/send`, { force: false });
             const data = res?.data ?? res;
             if (data?.sent) toast.success(`New Order Form sent to ${data.recipients?.join(', ') || 'the team'}`);
             else toast.error(data?.reason || 'Project saved, but the New Order Form email was not sent.');
-          })
-          .catch(err => toast.error(err.message || 'Project saved, but the New Order Form email failed to send.'));
+          } catch (err) {
+            const pending = err?.status === 422 || /attachment\(s\) are not ready/i.test(err?.message || '');
+            if (pending && tries > 1) {
+              await new Promise(r => setTimeout(r, 6000));
+              return sendOrder(tries - 1);
+            }
+            toast.error(pending
+              ? 'Project saved. The New Order email is waiting for its attachments to finish uploading to Drive — open the project and use “New Order Email” to send it once they appear.'
+              : (err.message || 'Project saved, but the New Order Form email failed to send.'));
+          }
+        };
+        sendOrder();
       }
 
       /*  Straight to the saved project. There used to be a second press —

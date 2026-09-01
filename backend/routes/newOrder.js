@@ -391,6 +391,23 @@ router.post('/:projectId/send', async (req, res, next) => {
         seconds ago and Drive may not have indexed them for the first lookup. */
     const { project, client, files } = await load(req.params.projectId, { attachmentRetries: 3 });
 
+    /*  Don't send an order email with files missing. If any file referenced on
+        the project has not resolved in Drive (still indexing, or a bad path),
+        refuse and tell the caller which ones — so the email never goes out
+        without its attachments. Override with { allowMissingAttachments:true }. */
+    const expectedPaths = expectedFilePaths(project);
+    const unresolved = expectedPaths.filter(p => !(files[p] && files[p].id && !files[p].error));
+    if (unresolved.length && req.body?.allowMissingAttachments !== true) {
+      return res.status(422).json({
+        success: false,
+        error: `Not sent — ${unresolved.length} attachment(s) are not ready in Drive yet. ` +
+               `The files were likely uploaded moments ago and Drive is still indexing them. ` +
+               `Please try again in a few seconds.`,
+        attachments_pending: unresolved.map(p => String(p).split('/').pop()),
+        hint: 'Retry shortly. To send without them, resend with { "allowMissingAttachments": true }.',
+      });
+    }
+
     /* Guard against a double-click sending the form twice. Pass { force:true }
        to deliberately resend. New_Order_Sent_At is written below; if that
        column does not exist in the Projects tab yet the write is skipped and
