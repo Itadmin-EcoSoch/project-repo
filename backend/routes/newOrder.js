@@ -123,20 +123,43 @@ function withTimeout(promise, ms, fallback, label) {
   ]).finally(() => clearTimeout(timer));
 }
 
-/** Attachment paths → Drive links. Degrades to plain filenames if slow. */
-async function resolveAttachments(project) {
-  const paths = FILE_COLUMNS
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** The file references on a project, minus AppSheet's stray TRUE/FALSE cells.
+    A reference has a folder slash OR looks like a filename (dot-extension);
+    requiring a slash alone dropped files saved as a bare "ID.Column.random.ext"
+    name — no link, no attachment. */
+function expectedFilePaths(project) {
+  return FILE_COLUMNS
     .flatMap(col => String(project[col] || '').split(','))
     .map(s => s.trim())
-    /*  Keep real file references, drop AppSheet's stray TRUE/FALSE checkbox
-        values. A reference either has a folder slash OR looks like a filename
-        (has a dot-extension). Requiring a slash alone silently dropped every
-        file stored as a bare "ID.Column.random.ext" name — no link, no
-        attachment — which is what this fixes.                              */
     .filter(p => p && !/^(true|false)$/i.test(p) && (p.includes('/') || p.includes('.')));
+}
 
+/**
+ * Attachment paths → Drive links. Degrades to plain filenames if slow.
+ *
+ * A brand-new project's files are often uploaded seconds before the order is
+ * sent, and Drive's search index can lag — so the first lookup misses and the
+ * email goes out with no attachments and un-hyperlinked file fields. With
+ * retries > 0 we wait and re-resolve (cache-bypassing) until every expected
+ * file resolves or we run out of tries, which makes the first auto-sent email
+ * reliably include the files.
+ */
+async function resolveAttachments(project, { retries = 0, delayMs = 4000 } = {}) {
+  const paths = expectedFilePaths(project);
   if (!paths.length) return {};
-  return withTimeout(db.resolveFiles(paths), ATTACHMENT_TIMEOUT_MS, {}, 'attachment lookup');
+
+  let files = await withTimeout(db.resolveFiles(paths), ATTACHMENT_TIMEOUT_MS, {}, 'attachment lookup');
+  const allResolved = () => paths.every(p => files[p] && files[p].id && !files[p].error);
+
+  for (let i = 0; i < retries && !allResolved(); i++) {
+    await sleep(delayMs);
+    const again = await withTimeout(
+      db.resolveFiles(paths, { fresh: true }), ATTACHMENT_TIMEOUT_MS, {}, `attachment re-resolve #${i + 1}`);
+    files = { ...files, ...again };
+  }
+  return files;
 }
 
 /*  Gmail rejects a message over ~25 MB in total. 20 MB leaves room for the
@@ -257,7 +280,7 @@ async function loadClient(project) {
  *   3. The Drive lookup has its own timeout and degrades to plain filenames,
  *      so a slow Apps Script call costs the links, not the whole email.
  */
-async function load(projectId) {
+async function load(projectId, { attachmentRetries = 0 } = {}) {
   const t0 = Date.now();
 
   let project = await db.get('projects', projectId);
@@ -275,7 +298,7 @@ async function load(projectId) {
 
   const [client, files] = await Promise.all([
     withTimeout(loadClient(project), CLIENT_TIMEOUT_MS, {}, 'client lookup'),
-    resolveAttachments(project),
+    resolveAttachments(project, { retries: attachmentRetries }),
   ]);
 
   console.log(
@@ -364,7 +387,9 @@ router.get('/:projectId/preview', async (req, res, next) => {
 /* ── POST /api/new-order/:projectId/send ────────────────────────────── */
 router.post('/:projectId/send', async (req, res, next) => {
   try {
-    const { project, client, files } = await load(req.params.projectId);
+    /*  Retry attachment resolution on send: the files were often uploaded
+        seconds ago and Drive may not have indexed them for the first lookup. */
+    const { project, client, files } = await load(req.params.projectId, { attachmentRetries: 3 });
 
     /* Guard against a double-click sending the form twice. Pass { force:true }
        to deliberately resend. New_Order_Sent_At is written below; if that

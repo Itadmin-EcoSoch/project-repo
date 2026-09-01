@@ -514,13 +514,16 @@ async function lookups({ fresh = false } = {}) {
 
 /** Resolve AppSheet attachment paths to real Drive links. Cached 30 min. */
 const fileCache = new Map();
-async function resolveFiles(paths = []) {
+async function resolveFiles(paths = [], { fresh = false } = {}) {
   const want = [...new Set(paths.filter(Boolean))];
   if (!want.length) return {};
 
   const out = {}, missing = [];
   for (const p of want) {
-    const hit = fileCache.get(p);
+    /*  fresh=true skips the cache entirely — used by the New Order send retry,
+        so a file that missed seconds after upload (Drive not yet indexed) is
+        looked up again instead of served from the 60s miss-cache.          */
+    const hit = fresh ? null : fileCache.get(p);
     if (hit && Date.now() - hit.at < (hit.ttl ?? 30 * 60 * 1000)) out[p] = hit.value;
     else missing.push(p);
   }
