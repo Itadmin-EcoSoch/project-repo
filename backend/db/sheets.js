@@ -332,9 +332,23 @@ function runQuery(rows, params = {}) {
     const keys = params.searchFields
       ? String(params.searchFields).split(',').map(s => s.trim())
       : null;
+    /*  Digit-only form of the query, so a phone search ignores spaces, '+' and
+        dashes: "7259289969" matches a stored "+91 72592 89969". Only used when
+        the query is mostly digits (>=4), so ordinary text search is unchanged. */
+    const qDigits = q.replace(/\D/g, '');
+    const usePhone = qDigits.length >= 4;
     out = out.filter(r => {
       const ks = keys || Object.keys(r);
-      return ks.some(k => r[k] != null && String(r[k]).toLowerCase().includes(q));
+      return ks.some(k => {
+        if (r[k] == null) return false;
+        const sv = String(r[k]).toLowerCase();
+        if (sv.includes(q)) return true;
+        if (usePhone) {
+          const vDigits = sv.replace(/\D/g, '');
+          if (vDigits && vDigits.includes(qDigits)) return true;
+        }
+        return false;
+      });
     });
   }
 
