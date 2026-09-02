@@ -25,7 +25,7 @@ router.get('/', async (req, res, next) => {
       /*  Client_Id added for the same reason as Project_ID on the projects
           route — pasting an id from the sheet or a URL should find the row.  */
       /*  Search clients by name and email only. */
-      searchFields: 'Client_Name,Client_Email',
+      searchFields: 'Client_Name,Client_Email,Client_Mobile',
       reverse: true,          // newest rows are at the bottom of the sheet
 
       limit : Number(limit),
