@@ -33,7 +33,7 @@ router.use(express.json({ limit: `${Math.ceil(MAX_MB * 1.4)}mb` }));
 /** Extensions we are willing to put in Drive. */
 const ALLOWED = new Set([
   'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'gif',
-  'xls', 'xlsx', 'csv', 'doc', 'docx', 'ppt', 'pptx', 'txt',
+  'xls', 'xlsx', 'xlsm', 'csv', 'doc', 'docx', 'ppt', 'pptx', 'txt',
 ]);
 
 const extOf = name => String(name || '').split('.').pop().toLowerCase();

@@ -259,7 +259,7 @@ export default function FileField({ value, onChange, column, projectId, hasError
       </div>
 
       <input ref={ref} type="file" style={{ display: 'none' }}
-             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,.xls,.xlsx,.csv,.doc,.docx,.ppt,.pptx,.txt"
+             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,.xls,.xlsx,.xlsm,.csv,.doc,.docx,.ppt,.pptx,.txt"
              onChange={e => handleFile(e.target.files?.[0])} />
 
       {error && <div style={{ fontSize: 11, color: C.danger, marginTop: 5 }}>{error}</div>}
