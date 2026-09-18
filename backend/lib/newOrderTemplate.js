@@ -423,6 +423,12 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
   const projName  = String(project.Project_Name || '').trim();
   const who       = String(project.Salesperson_Email || addedBy || project.Sales_Lead || '').trim();
   const headline  = `New Project ${projName} is now added${who ? ` by ${who}` : ''}`;
+  /*  HTML version of the banner sub-line: the "added by" name/email is shown
+      bold white so it reads on the dark band. Wrapping it in a no-href <a>
+      also stops Gmail from auto-linkifying an email address (which rendered it
+      as invisible blue link text on the dark background).                    */
+  const headlineHtml = `New Project ${esc(projName)} is now added` +
+    (who ? ` by <a style="color:#ffffff;font-weight:bold;text-decoration:none">${esc(who)}</a>` : '');
 
   const openLink = opts.appUrl && project.Project_ID
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0">` +
@@ -446,7 +452,7 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
 
       `<tr><td style="${S.band}">` +
         `<h1 style="${S.title}">${esc(projName || 'New Order Form')}</h1>` +
-        `<p style="${S.sub}">${esc(headline)}</p>` +
+        `<p style="${S.sub}">${headlineHtml}</p>` +
       `</td></tr>` +
 
       `<tr><td style="${S.pad}">` +
