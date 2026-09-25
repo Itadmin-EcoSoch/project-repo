@@ -119,6 +119,7 @@ app.use('/api/solarcare', solarcareRouter);   // the client → project → ops 
 app.use('/api/users',    usersRouter);
 app.use('/api/launcher', launcherRouter);
 app.use('/api/dropdown-options', dropdownOptionsRouter);
+app.use('/api/supabase', require('./routes/supabaseAdmin'));   // one-time Sheet -> Supabase backfill
 app.use('/api/sync',     syncRouter);
 app.use('/api',          syncRouter);          // exposes GET /api/lookups
 

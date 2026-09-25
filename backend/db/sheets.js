@@ -200,6 +200,8 @@ async function callNow(payload, { method = 'POST' } = {}) {
 
 /* ──────────────────── whole-table cache ──────────────────── */
 
+const supa = require('../lib/supabaseSync');   // live Supabase replica (no-op until configured)
+
 /** table -> { rows:[{}], at:number, loading:Promise|null, refreshing:boolean } */
 const CACHE = new Map();
 
@@ -439,6 +441,7 @@ async function get(name, id, { fresh = false } = {}) {
 async function insert(name, row) {
   const out = await call({ action: 'create', table: name, row });
   patchCache(name, ID_COL[name], null, out.data, 'insert');
+  await supa.upsert(name, out.data);
   return out.data;
 }
 
@@ -463,6 +466,7 @@ async function insertMany(name, rows) {
   const out = await call({ action: 'createMany', table: name, rows: list });
   const made = out.data || [];
   for (const r of made) patchCache(name, ID_COL[name], null, r, 'insert');
+  await supa.upsert(name, made);
   return made;
 }
 
@@ -486,18 +490,21 @@ async function insertMany(name, rows) {
   const out = await call({ action: 'createMany', table: name, rows: list });
   const made = out.data || [];
   for (const r of made) patchCache(name, ID_COL[name], null, r, 'insert');
+  await supa.upsert(name, made);
   return made;
 }
 
 async function update(name, id, patch) {
   const out = await call({ action: 'update', table: name, id: String(id), patch });
   patchCache(name, ID_COL[name], id, out.data, 'update');
+  await supa.upsert(name, out.data);
   return out.data;
 }
 
 async function remove(name, id) {
   const out = await call({ action: 'delete', table: name, id: String(id) });
   patchCache(name, ID_COL[name], id, null, 'delete');
+  await supa.remove(name, id);
   return out.data;
 }
 
