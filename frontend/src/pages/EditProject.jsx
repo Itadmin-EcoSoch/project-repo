@@ -457,7 +457,7 @@ export default function EditProject() {
 
   return (
     <div style={page}>
-      <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`,
+      <div style={{ background: 'var(--white)', borderBottom: `1px solid ${C.border}`,
                     padding: '13px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: C.text1 }}>Edit Project</div>
         <div style={{ fontSize: 11, color: C.text3, marginTop: 2, whiteSpace: 'nowrap',
