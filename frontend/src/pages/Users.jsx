@@ -208,13 +208,15 @@ export default function Users() {
 
                   <Chip
 
-                    label={user.status}
+                    label={user.status || "Active"}
 
                     color={
-                      user.status === "active"
+                      String(user.status || "Active").toLowerCase() === "active"
                         ? "success"
                         : "default"
                     }
+
+                    size="small"
 
                   />
 

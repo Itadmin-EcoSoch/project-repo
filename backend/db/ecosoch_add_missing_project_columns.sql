@@ -1,7 +1,15 @@
--- EcoSoch Project Repository — add the Projects columns that were missing from
--- the original Supabase schema. These are columns the app's project form reads
--- and writes (Billing & Documentation toggles, referral, retention, monitoring,
--- etc.) but that were never created in Supabase, so they showed blank/hidden.
+-- ===========================================================================
+-- EcoSoch Project Repository — Supabase schema top-up (CONSOLIDATED)
+-- ===========================================================================
+-- The original Supabase schema was generated from the app's column mapping,
+-- so any sheet column that wasn't mapped was left out — and those fields then
+-- showed blank/hidden in the app. This script adds every such column across
+-- all affected tables:
+--     Projects .............. 19 columns
+--     AMC_Contracts ......... 8 columns
+--     AMC_Payment_Schedule .. 1 column  (Payment_Receipt)
+--     Tickets ............... 6 columns
+-- (Clients and AMC_Tasks_Schedule were already complete — no changes.)
 --
 -- Safe to run more than once: every statement is IF NOT EXISTS.
 -- Run in the Supabase SQL editor for the STAGING project first, then PROD at cutover.
@@ -63,14 +71,17 @@ alter table "Tickets" add column if not exists "Ticket_Expenses"            text
 alter table "Tickets" add column if not exists "Ticket_Files"               text;
 alter table "Tickets" add column if not exists "Last_Updated_By"            text;
 
--- Sanity: list the columns now on the Projects table.
-select column_name
-from information_schema.columns
-where table_name = 'Projects'
-order by ordinal_position;
+-- ---------------------------------------------------------------------------
+-- Users — the app has an Active/Inactive status but it was never mapped or
+-- stored, so it never persisted. Add the column so status round-trips.
+-- ---------------------------------------------------------------------------
+alter table "Users" add column if not exists "User_Status" text;
 
--- Sanity: list the columns now on the AMC_Contracts table.
-select column_name
+-- ---------------------------------------------------------------------------
+-- Sanity: column counts on each affected table after the top-up.
+-- ---------------------------------------------------------------------------
+select table_name, count(*) as column_count
 from information_schema.columns
-where table_name = 'AMC_Contracts'
-order by ordinal_position;
+where table_name in ('Projects','AMC_Contracts','AMC_Payment_Schedule','Tickets')
+group by table_name
+order by table_name;

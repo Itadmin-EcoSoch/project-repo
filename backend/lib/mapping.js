@@ -182,6 +182,7 @@ const users = {
   name      : 'User_Name',
   role      : 'User_Role',
   department: 'Department',
+  status    : 'User_Status',   // Active / Inactive — was never mapped, so it never persisted
 };
 
 /* ── LAUNCHER ────────────────────────────────────────────────────────── */
