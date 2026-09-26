@@ -52,7 +52,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db   = require('../db/sheets');
+const db   = require('../db');
 const perm = require('../lib/permissions');
 const { REQUIRE_AUTH } = require('../middleware/auth');
 

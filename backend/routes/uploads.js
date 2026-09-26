@@ -22,7 +22,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 
 /*  Files arrive base64-encoded inside JSON, which inflates them by about a
     third. The global express.json() limit is far too small for a 5 MB PO, so

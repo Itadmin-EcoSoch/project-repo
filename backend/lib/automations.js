@@ -42,7 +42,7 @@
     None of these should ever block saving a project.
 --------------------------------------------------------------------------- */
 
-const db = require('../db/sheets');
+const db = require('../db');
 const promo = require('./paymentPromotion');
 const { newStatusLogId } = require('./uniqueId');
 

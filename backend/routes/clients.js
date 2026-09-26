@@ -5,7 +5,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const automations = require('../lib/automations');
 const { MAP, toApp, toSheet } = require('../lib/mapping');
 const { buildChanges, sendChangeEmail } = require('../utils/mailer');

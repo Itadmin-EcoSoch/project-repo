@@ -24,7 +24,7 @@
     ============================================================================  */
 
 require('dotenv').config();
-const db = require('./db/sheets');
+const db = require('./db');
 
 const key  = v => String(v ?? '').trim().toLowerCase();
 const norm = v => String(v ?? '').trim();

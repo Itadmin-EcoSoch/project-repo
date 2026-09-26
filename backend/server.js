@@ -4,7 +4,7 @@
 
 require('dotenv').config();
 const app = require('./app');
-const db  = require('./db/sheets');
+const db  = require('./db');
 const { REQUIRE_AUTH } = require('./middleware/auth');
 const PORT = process.env.PORT || 4000;
 

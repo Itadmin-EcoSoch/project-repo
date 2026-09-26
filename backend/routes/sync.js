@@ -11,7 +11,7 @@
 
 const express = require('express');
 const router  = express.Router();
-const db      = require('../db/sheets');
+const db      = require('../db');
 
 /* ── change tracking ─────────────────────────────────────────────────────
    The frontend polls GET /api/sync/version and refetches when the number

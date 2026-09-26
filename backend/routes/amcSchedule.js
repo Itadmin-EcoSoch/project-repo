@@ -19,7 +19,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db  = require('../db/sheets');
+const db  = require('../db');
 const amc = require('../lib/amcSchedule');
 const { toSheet, toApp, MAP } = require('../lib/mapping');
 const { newAmcId, newAmcPaymentId, newAmcTaskId } = require('../lib/uniqueId');

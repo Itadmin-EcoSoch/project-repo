@@ -3,7 +3,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const { MAP, toApp, toSheet, splitGeo } = require('../lib/mapping');
 const { toSheetStatus, canonicalStatus,
         projectStatusOptions, isStatusAllowed } = require('../lib/status');

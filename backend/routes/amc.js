@@ -5,7 +5,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const { MAP, toApp, toSheet } = require('../lib/mapping');
 const { newAmcTaskId } = require('../lib/uniqueId');
 const { syncContractStatus } = require('../lib/amcStatus');

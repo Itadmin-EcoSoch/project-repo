@@ -32,7 +32,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const { numberedForProject, summarise, isClosed } = require('./tickets');
 const { effectiveStatus } = require('../lib/amcStatus');
 

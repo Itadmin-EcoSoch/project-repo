@@ -13,7 +13,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db   = require('../db/sheets');
+const db   = require('../db');
 const supa = require('../lib/supabaseSync');
 const { requireRole } = require('../middleware/auth');
 
@@ -34,7 +34,7 @@ router.post('/backfill', requireRole('Admin', 'Super Admin'), async (req, res, n
 
     for (const key of tables) {
       if (!supa.MIRRORED.includes(key)) { result[key] = { error: 'not a mirrored table' }; continue; }
-      const rows = await db.all(key, { fresh: true });
+      const rows = await db.readSheet(key);   // always read the Google Sheet to seed
       let done = 0;
       for (let i = 0; i < rows.length; i += CHUNK) {
         await supa.upsert(key, rows.slice(i, i + CHUNK));

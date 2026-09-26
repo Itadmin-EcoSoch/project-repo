@@ -18,7 +18,7 @@
         Client  →  Project  →  AMC contract  →  visit 1, visit 2, visit 3 …
 --------------------------------------------------------------------------- */
 
-const db  = require('../db/sheets');
+const db  = require('../db');
 const amc = require('./amcSchedule');
 const { toSheet, toApp, MAP } = require('./mapping');
 const { newAmcId, newUniqueIds } = require('../lib/uniqueId');

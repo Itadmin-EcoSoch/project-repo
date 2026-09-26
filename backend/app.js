@@ -24,7 +24,7 @@ const authRouter     = require('./routes/auth');
 const errorHandler   = require('./middleware/errorHandler');
 const { attachUser, requireAuth, enforcePermissions, REQUIRE_AUTH } = require('./middleware/auth');
 
-const db   = require('./db/sheets');
+const db   = require('./db');
 const app  = express();
 const PORT = process.env.PORT || 4000;
 

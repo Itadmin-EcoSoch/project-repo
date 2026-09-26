@@ -26,7 +26,7 @@
     ============================================================================  */
 
 require('dotenv').config();
-const db = require('./db/sheets');
+const db = require('./db');
 const { projectStatusOptions, countAmcTypes } = require('./lib/status');
 
 const RULE_LABEL = {
