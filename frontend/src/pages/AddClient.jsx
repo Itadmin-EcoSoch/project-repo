@@ -276,10 +276,13 @@ function LocationCard({ lat, lng, address, onChange, error }) {
             target="_blank" rel="noopener noreferrer"
             style={{
               position:'absolute', bottom:10, right:10,
-              background:'var(--white)',
-              border:`1px solid ${C.border}`,
+              /*  Floats over the live (always-light) map tiles, so it must stay
+                  a light chip with dark text in BOTH themes — not var(--white),
+                  which is dark in dark mode and hid this link. */
+              background:'rgba(255,255,255,.95)',
+              border:'1px solid #e2e8f0',
               borderRadius:8, padding:'5px 10px',
-              fontSize:11, color:C.primary, fontWeight:700,
+              fontSize:11, color:'#1e3a5f', fontWeight:700,
               textDecoration:'none',
               backdropFilter:'blur(6px)',
               display:'flex', alignItems:'center', gap:5,
