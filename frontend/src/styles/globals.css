@@ -118,7 +118,7 @@
   justify-content: center;
   transition: background .15s, color .15s;
 }
-.topbar-btn:hover { background: var(--slate-800); color: var(--white); }
+.topbar-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
 
 /* ── Content Area ───────────────────────────────────────────── */
 .content-area {
