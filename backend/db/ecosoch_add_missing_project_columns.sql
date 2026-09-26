@@ -51,6 +51,18 @@ alter table "AMC_Contracts" add column if not exists "Payments_Done"            
 -- ---------------------------------------------------------------------------
 alter table "AMC_Payment_Schedule" add column if not exists "Payment_Receipt" text;
 
+-- ---------------------------------------------------------------------------
+-- Tickets — columns present in the Tickets sheet tab but never created in
+-- Supabase (charge-applicable flags and amounts, ticket expenses, ticket files,
+-- and the updated-by stamp).
+-- ---------------------------------------------------------------------------
+alter table "Tickets" add column if not exists "Service_Charge_Applicable"  text;
+alter table "Tickets" add column if not exists "Service_Charge"             text;
+alter table "Tickets" add column if not exists "Material_Charge_Applicable" text;
+alter table "Tickets" add column if not exists "Ticket_Expenses"            text;
+alter table "Tickets" add column if not exists "Ticket_Files"               text;
+alter table "Tickets" add column if not exists "Last_Updated_By"            text;
+
 -- Sanity: list the columns now on the Projects table.
 select column_name
 from information_schema.columns

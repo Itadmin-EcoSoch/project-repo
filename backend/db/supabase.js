@@ -29,6 +29,14 @@ const TABLE = {
   launcher:     'Launcher',
 };
 const EXTRA = {
+  tickets: [
+    /*  Columns the Tickets tab carries but lib/mapping.js never mapped, so
+        clean() dropped them on backfill/write (charge-applicable flags and
+        amounts, ticket expenses, the ticket files, and the updated-by stamp). */
+    'Service_Charge_Applicable', 'Service_Charge',
+    'Material_Charge_Applicable', 'Ticket_Expenses',
+    'Ticket_Files', 'Last_Updated_By',
+  ],
   amc_payments: [
     /*  The payment receipt file column exists in the AMC_Payment_Schedule tab
         but was never mapped, so it was dropped on backfill/write. */
