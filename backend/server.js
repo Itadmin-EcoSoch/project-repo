@@ -3,6 +3,7 @@
     Vercel serverless entry at backend/api/index.js.                          */
 
 require('dotenv').config();
+require('./env-alias');            // map *_PROJECT_REPO -> base names, before app loads
 const app = require('./app');
 const db  = require('./db');
 const { REQUIRE_AUTH } = require('./middleware/auth');
