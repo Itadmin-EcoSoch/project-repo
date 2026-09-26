@@ -53,7 +53,13 @@ app.use(morgan('dev'));
 app.use(attachUser);          // decodes the session token when one is sent
 
 app.get('/health', (_, res) =>
-  res.json({ status: 'ok', service: 'EcoSoch API', db: 'Google Sheets' }));
+  res.json({
+    status: 'ok',
+    service: 'EcoSoch API',
+    data_source: db.DATA_SOURCE || 'sheet',
+    sheet_write_through: !!db.WRITE_THROUGH,
+    db: db.USE_SUPA ? 'Supabase' : 'Google Sheets',
+  }));
 
 /* Google Sheets connectivity + tab check — open http://localhost:4000/health/db */
 app.get('/health/db', async (_, res) => {
