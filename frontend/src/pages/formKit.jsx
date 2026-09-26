@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTheme } from '../hooks/useTheme';
 import {
   TEXT_MAX, TEXTAREA_MAX, PHONE_MAX,
   sanitizeText, tidyOnBlur, sanitizePhoneDigits, counterFor,
@@ -441,13 +442,13 @@ export function SearchableSelect({
             position:'fixed', left:rect.left, width:rect.width,
             ...(rect.top !== undefined ? { top:rect.top } : { bottom:rect.bottom }),
             zIndex: 9999,
-            background:'#fff', border:`1px solid ${C.border}`, borderRadius:12,
+            background:'var(--white)', border:`1px solid ${C.border}`, borderRadius:12,
             boxShadow:'0 12px 34px rgba(15,23,42,.18)', overflow:'hidden',
             display:'flex', flexDirection:'column',
             maxHeight: Math.max(160, rect.maxH),
           }}>
 
-          <div style={{ padding:8, borderBottom:`1px solid ${C.surface}`, background:'#fff' }}>
+          <div style={{ padding:8, borderBottom:`1px solid ${C.surface}`, background:'var(--white)' }}>
             <input
               ref={inputRef} value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey}
               placeholder={searchPlaceholder}
@@ -483,7 +484,7 @@ export function SearchableSelect({
                     style={{
                       padding:'9px 13px', cursor:'pointer', fontSize:13,
                       display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
-                      background: isActive ? C.accentL : '#fff',
+                      background: isActive ? C.accentL : 'var(--white)',
                       color: isChosen ? C.primary : C.text1,
                       fontWeight: isChosen ? 700 : 500,
                     }}>
@@ -680,8 +681,13 @@ export function DateField({ value, onChange, hasError }) {
 }
 
 export function Card({ icon, title, color=C.primary, tint, children }) {
+  const { resolved } = useTheme();
+  /*  The per-section tints are light pastels; in dark mode they'd turn the card
+      light and hide the (now light) labels. Skip them and keep the dark card
+      background — the coloured header still tells sections apart. */
+  const tintStyle = (tint && resolved !== 'dark') ? { background: tint } : {};
   return (
-    <div style={{ ...card, ...(tint ? { background: tint } : {}) }}>
+    <div style={{ ...card, ...tintStyle }}>
       <div style={cardHeader(color)}>
         <div style={cardIconBg(color)}>{icon}</div>
         <span style={{ fontSize:12, fontWeight:700, color:C.text1, letterSpacing:'.01em' }}>{title}</span>
@@ -703,13 +709,13 @@ export function Footer({
 }) {
   const hasMiddle = Boolean(onMiddle && middleLabel);
   return (
-    <div style={{ position:'sticky', bottom:0, background:'#fff', borderTop:`1px solid ${C.border}`, padding:'10px 18px', display:'flex', gap:10, zIndex:40, boxShadow:'0 -4px 20px rgba(0,0,0,.07)' }}>
-      <button onClick={onSecondary} style={{ flex:1, height:48, borderRadius:12, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:13, fontWeight:700, color:C.text2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+    <div style={{ position:'sticky', bottom:0, background:'var(--white)', borderTop:`1px solid ${C.border}`, padding:'10px 18px', display:'flex', gap:10, zIndex:40, boxShadow:'0 -4px 20px rgba(0,0,0,.07)' }}>
+      <button onClick={onSecondary} style={{ flex:1, height:48, borderRadius:12, border:`1.5px solid ${C.border}`, background:'var(--white)', fontSize:13, fontWeight:700, color:C.text2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
         {secondaryLabel}
       </button>
 
       {hasMiddle && (
-        <button onClick={onMiddle} disabled={middleDisabled} style={{ flex:1.4, height:48, borderRadius:12, border:`1.5px solid ${middleDisabled?C.border:middleColor}`, background:'#fff', fontSize:13, fontWeight:700, color: middleDisabled?C.text3:middleColor, cursor: middleDisabled?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all .2s' }}>
+        <button onClick={onMiddle} disabled={middleDisabled} style={{ flex:1.4, height:48, borderRadius:12, border:`1.5px solid ${middleDisabled?C.border:middleColor}`, background:'var(--white)', fontSize:13, fontWeight:700, color: middleDisabled?C.text3:middleColor, cursor: middleDisabled?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all .2s' }}>
           {middleLabel}
         </button>
       )}

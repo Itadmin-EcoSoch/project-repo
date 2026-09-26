@@ -51,7 +51,7 @@ function YesNo({ value, onChange, hasError, lockedTo = null }) {
               cursor: disabled ? 'not-allowed' : 'pointer',
               opacity: disabled ? 0.4 : 1,
               border: `1.5px solid ${active ? C.primary : hasError ? '#fca5a5' : C.border}`,
-              background: active ? C.primary : hasError ? '#fffafa' : '#fff',
+              background: active ? C.primary : hasError ? 'var(--rose-l)' : 'var(--white)',
               color     : active ? '#fff' : C.text2,
               transition: 'background .12s, border-color .12s',
             }}>
@@ -117,7 +117,7 @@ function RadioGroup({ value, options = [], onChange, hasError, lockedTo = null }
               cursor: disabled ? 'not-allowed' : 'pointer',
               opacity: disabled ? 0.4 : 1,
               border: `1.5px solid ${active ? C.primary : hasError ? '#fca5a5' : C.border}`,
-              background: active ? C.primary : hasError ? '#fffafa' : '#fff',
+              background: active ? C.primary : hasError ? 'var(--rose-l)' : 'var(--white)',
               color     : active ? '#fff' : C.text2,
               transition: 'all .12s',
             }}>
