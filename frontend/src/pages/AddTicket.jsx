@@ -200,8 +200,16 @@ export default function AddTicket() {
 
           <Field label="Chargeable amount">
             <SInput type="number" value={f.total_charge}
-                    onChange={e => set('total_charge', e.target.value)}
-                    placeholder="0" suffix="₹" />
+                    onChange={e => {
+                      const raw = e.target.value;
+                      if (raw === '') return set('total_charge', '');
+                      let n = Number(raw);
+                      if (Number.isNaN(n)) return;          // ignore non-numeric input
+                      if (n < 0) n = 0;                     // no negatives
+                      if (n > 1000000) n = 1000000;         // cap at 10 lakhs
+                      set('total_charge', String(n));
+                    }}
+                    step="1" placeholder="0" suffix="₹" />
           </Field>
         </Card>
 
