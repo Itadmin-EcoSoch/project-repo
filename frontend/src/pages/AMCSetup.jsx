@@ -420,14 +420,25 @@ function ContractBlock({ title, emoji, color, value, onChange, projectId, kind }
         <Row cols={3} style={{ padding: '0 4px' }}>
           <Field label="Amount per payment" required>
             <SInput type="number" value={value.payment_amount}
-                    onChange={e => set('payment_amount', e.target.value)}
-                    placeholder="0" suffix="₹" />
+                    onChange={e => {
+                      const raw = e.target.value;
+                      if (raw === '') return set('payment_amount', '');
+                      let n = Number(raw);
+                      if (Number.isNaN(n)) return;
+                      if (n < 0) n = 0;                 // no negatives
+                      if (n > 1000000) n = 1000000;     // cap at 10 lakhs
+                      set('payment_amount', String(n));
+                    }}
+                    step="1" placeholder="0" suffix="₹" />
           </Field>
 
           <Field label="Payments per year">
-            <SSelect value={String(value.payment_frequency)}
-                     onChange={e => set('payment_frequency', Number(e.target.value))}
-                     options={allowedPaymentFreqs.map(String)} />
+            <SelectOrType value={value.payment_frequency === '' ? '' : String(value.payment_frequency)}
+                     onChange={v => set('payment_frequency', v === '' ? '' : Number(v))}
+                     options={allowedPaymentFreqs.map(String)}
+                     addLabel="＋ Enter a different number"
+                     typePlaceholder="Type the number of payments"
+                     placeholder="Select…" />
             <div style={{ fontSize: 10.5, color: C.text3, marginTop: 6, lineHeight: 1.5 }}>
               One payment can cover several visits, but one visit cannot be split
               across payments — so this cannot exceed the visit frequency.
@@ -436,8 +447,16 @@ function ContractBlock({ title, emoji, color, value, onChange, projectId, kind }
 
           <Field label="Increase per payment">
             <SInput type="number" value={value.percent_increase}
-                    onChange={e => set('percent_increase', e.target.value)}
-                    placeholder="0" suffix="%" />
+                    onChange={e => {
+                      const raw = e.target.value;
+                      if (raw === '') return set('percent_increase', '');
+                      let n = Number(raw);
+                      if (Number.isNaN(n)) return;
+                      if (n < 0) n = 0;                 // no negatives
+                      if (n > 1000000) n = 1000000;     // cap at 10 lakhs
+                      set('percent_increase', String(n));
+                    }}
+                    step="1" placeholder="0" suffix="%" />
             <div style={{ fontSize: 10.5, color: C.text3, marginTop: 6 }}>
               Compounds on every instalment. Leave blank for a flat amount.
             </div>
