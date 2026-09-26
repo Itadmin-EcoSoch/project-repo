@@ -223,7 +223,7 @@ function LocationCard({ lat, lng, address, onChange, error }) {
       </div>
 
       {hasCoords && (
-        <div style={{ display:'flex', borderBottom:`1px solid ${C.border}`, background:'#f8fafc' }}>
+        <div style={{ display:'flex', borderBottom:`1px solid ${C.border}`, background:'var(--slate-50)' }}>
           {MAP_LAYERS.map(l => (
             <button key={l.id} onClick={()=>setMapLayer(l.id)} style={{
               flex:1, padding:'8px 4px', border:'none', background:'none',
@@ -240,9 +240,9 @@ function LocationCard({ lat, lng, address, onChange, error }) {
         </div>
       )}
 
-      <div style={{ position:'relative', height:230, background:'#f0f4f8' }}>
+      <div style={{ position:'relative', height:230, background:'var(--slate-100)' }}>
         {!hasCoords ? (
-          <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,background:'#f8fafc' }}>
+          <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,background:'var(--slate-50)' }}>
             <div style={{ width:52,height:52,borderRadius:'50%',background:C.accentL,display:'flex',alignItems:'center',justifyContent:'center' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="1.8" strokeLinecap="round">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
@@ -276,7 +276,7 @@ function LocationCard({ lat, lng, address, onChange, error }) {
             target="_blank" rel="noopener noreferrer"
             style={{
               position:'absolute', bottom:10, right:10,
-              background:'rgba(255,255,255,.95)',
+              background:'var(--white)',
               border:`1px solid ${C.border}`,
               borderRadius:8, padding:'5px 10px',
               fontSize:11, color:C.primary, fontWeight:700,
@@ -309,14 +309,14 @@ function TypeOfClientCard({ value, onChange, error }) {
               display:'flex', alignItems:'center', gap:12, textAlign:'left',
               padding:'13px 14px', borderRadius:12, cursor:'pointer',
               border:`2px solid ${active?C.purple:C.border}`,
-              background: active?'#f5f3ff':'#fff',
+              background: active?'var(--violet-l)':'var(--white)',
               transition:'all .15s', boxShadow: active?`0 2px 8px ${C.purple}25`:'none',
             }}>
               <div style={{
                 width:20, height:20, borderRadius:'50%', flexShrink:0,
                 border:`2px solid ${active?C.purple:C.border}`,
                 display:'flex', alignItems:'center', justifyContent:'center',
-                background: active?C.purple:'#fff',
+                background: active?C.purple:'var(--white)',
               }}>
                 {active && <div style={{ width:8, height:8, borderRadius:'50%', background:'#fff' }}/>}
               </div>
@@ -562,7 +562,7 @@ export default function AddClient() {
   return (
     <div style={page}>
       {/* Heading strip */}
-      <div style={{ background:'#fff', borderBottom:`1px solid ${C.border}`, padding:'13px 18px', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
+      <div style={{ background:'var(--white)', borderBottom:`1px solid ${C.border}`, padding:'13px 18px', boxShadow:'0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontSize:14, fontWeight:800, color:C.text1 }}>Add Client</div>
         <div style={{ fontSize:11, color:C.text3, marginTop:2 }}>
           Nothing is saved yet — the client is written to the sheet only when their first project is saved.

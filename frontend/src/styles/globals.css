@@ -236,7 +236,7 @@
   transition: background .1s;
   gap: 10px;
 }
-.list-item:hover { background: #FAFFFE; }
+.list-item:hover { background: var(--slate-50); }
 .list-item:active { background: var(--brand-l); }
 
 .item-avatar {
@@ -639,7 +639,7 @@
   white-space: nowrap;
 }
 .amc-table td { padding: 11px 14px; border-bottom: 1px solid var(--slate-100); color: var(--text-head); vertical-align: top; }
-.amc-table tr:hover td { background: #FAFFFE; cursor: pointer; }
+.amc-table tr:hover td { background: var(--slate-50); cursor: pointer; }
 .amc-group td { background: var(--slate-50); font-weight: 700; font-size: 11px; color: var(--brand-d); }
 .badge-pending { background: var(--amber-l); color: var(--amber); border-radius: 8px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
 .badge-done    { background: var(--brand-l); color: var(--brand-d); border-radius: 8px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
@@ -660,7 +660,7 @@
   cursor: pointer;
   transition: background .1s;
 }
-.search-result:hover { background: #FAFFFE; }
+.search-result:hover { background: var(--slate-50); }
 .s-avatar {
   width: 36px; height: 36px;
   border-radius: 10px;

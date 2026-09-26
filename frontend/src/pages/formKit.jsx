@@ -49,27 +49,30 @@ export const STATUSES = [
 ];
 
 /* ── Design tokens (mirror CSS vars for inline use) ──────────────── */
+/*  These now reference the theme CSS variables (React inline styles accept
+    var(--x)), so every form page built on this kit flips with light/dark
+    instead of staying hardcoded light. Light-theme values are unchanged. */
 export const C = {
-  primary:  '#1e3a5f',
-  primaryL: '#2d5282',
-  accent:   '#0ea5e9',
-  accentL:  '#e0f2fe',
-  success:  '#059669',
-  warning:  '#d97706',
-  danger:   '#dc2626',
-  purple:   '#7c3aed',
-  surface:  '#f1f5f9',
-  border:   '#e2e8f0',
-  text1:    '#0f172a',
-  text2:    '#475569',
-  text3:    '#94a3b8',
+  primary:  'var(--slate-800)',
+  primaryL: 'var(--slate-700)',
+  accent:   'var(--sky)',
+  accentL:  'var(--sky-l)',
+  success:  'var(--brand-m)',
+  warning:  'var(--amber)',
+  danger:   'var(--rose)',
+  purple:   'var(--violet)',
+  surface:  'var(--slate-100)',
+  border:   'var(--slate-200)',
+  text1:    'var(--text-head)',
+  text2:    'var(--text-body)',
+  text3:    'var(--slate-400)',
 };
 
 /* ── Shared inline styles ────────────────────────────────────────── */
 export const page = { background: C.surface, minHeight:'100%', paddingBottom:0 };
 
 export const card = {
-  background:'#fff',
+  background:'var(--white)',
   borderRadius:16,
   margin:'12px 16px',
   boxShadow:'0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04)',
@@ -93,7 +96,7 @@ export const fieldWrap  = { padding:'12px 16px', borderBottom:`1px solid ${C.sur
 /*  Labels were 10px grey uppercase and hard to read across a wide two-column
     form. Now dark navy, heavier and slightly larger — still uppercase, so
     nothing about the layout shifts.                                         */
-export const fieldLabel = { fontSize:11, fontWeight:800, color:'#0f2c3f', textTransform:'uppercase', letterSpacing:'.045em', marginBottom:7, display:'block', lineHeight:1.45 };
+export const fieldLabel = { fontSize:11, fontWeight:800, color:'var(--text-head)', textTransform:'uppercase', letterSpacing:'.045em', marginBottom:7, display:'block', lineHeight:1.45 };
 export const reqStar    = { color:C.accent, marginLeft:2 };
 export const errMsg     = { fontSize:11, color:C.danger, marginTop:5, display:'flex', alignItems:'center', gap:4 };
 
@@ -101,13 +104,13 @@ export const inputBase = {
   width:'100%', height:44, padding:'0 13px',
   border:`1.5px solid ${C.border}`, borderRadius:10,
   fontSize:13, fontFamily:'inherit', color:C.text1,
-  outline:'none', background:'#fff',
+  outline:'none', background:'var(--white)',
   transition:'border .15s, box-shadow .15s', boxSizing:'border-box',
 };
 export const inputFocus = { border:`1.5px solid ${C.accent}`, boxShadow:`0 0 0 3px ${C.accentL}80` };
 /*  Marks the field without shouting — a soft red rather than the full-strength
     danger colour, since dozens can be on screen at once.                    */
-export const inputErr   = { border:'1.5px solid #fca5a5', background:'#fffafa' };
+export const inputErr   = { border:'1.5px solid #fca5a5', background:'var(--rose-l)' };
 export const selectBase = {
   ...inputBase,
   paddingRight:36,
