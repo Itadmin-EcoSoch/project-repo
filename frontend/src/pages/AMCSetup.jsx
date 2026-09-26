@@ -199,7 +199,7 @@ export default function AMCSetup() {
                 style={{ textAlign: 'left', display: 'flex', alignItems: 'flex-start', gap: 10,
                          height: '100%',
                          padding: '13px 13px', borderRadius: 12, cursor: 'pointer',
-                         background: active ? `${C.purple}0f` : '#fff',
+                         background: active ? `${C.purple}1f` : 'var(--white)',
                          border: `1.5px solid ${active ? C.purple : C.border}`,
                          transition: 'all .15s' }}>
                 <span style={{ fontSize: 19 }}>{o.emoji}</span>

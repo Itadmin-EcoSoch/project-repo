@@ -54,14 +54,18 @@ export const STATUSES = [
     var(--x)), so every form page built on this kit flips with light/dark
     instead of staying hardcoded light. Light-theme values are unchanged. */
 export const C = {
-  primary:  'var(--slate-800)',
-  primaryL: 'var(--slate-700)',
-  accent:   'var(--sky)',
-  accentL:  'var(--sky-l)',
-  success:  'var(--brand-m)',
-  warning:  'var(--amber)',
-  danger:   'var(--rose)',
-  purple:   'var(--violet)',
+  /*  Accent colours stay as HEX: they are read on both light and dark
+      backgrounds, and several places append an alpha suffix (e.g. `${C.purple}0f`,
+      `${C.accentL}80`) which is only valid on a hex string, not a var(). */
+  primary:  '#1e3a5f',
+  primaryL: '#2d5282',
+  accent:   '#0ea5e9',
+  accentL:  '#e0f2fe',
+  success:  '#059669',
+  warning:  '#d97706',
+  danger:   '#dc2626',
+  purple:   '#7c3aed',
+  /*  Structural tokens follow the theme so surfaces/text flip light<->dark. */
   surface:  'var(--slate-100)',
   border:   'var(--slate-200)',
   text1:    'var(--text-head)',
