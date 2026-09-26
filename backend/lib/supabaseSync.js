@@ -36,6 +36,11 @@ const TABLE = {
 
 /* Sheet columns that exist in the tables but aren't in the app field-map. */
 const EXTRA = {
+  amc_payments: [
+    /*  The payment receipt file column exists in the AMC_Payment_Schedule tab
+        but was never mapped, so it was dropped on backfill/write. */
+    'Payment_Receipt',
+  ],
   amc_contracts: [
     /*  Columns the AMC_Contracts tab carries but lib/mapping.js never mapped,
         so clean() dropped them on backfill/write and they were blank on

@@ -45,6 +45,12 @@ alter table "AMC_Contracts" add column if not exists "Payment_End_Date"         
 alter table "AMC_Contracts" add column if not exists "AMC_Tasks_Done"           text;
 alter table "AMC_Contracts" add column if not exists "Payments_Done"            text;
 
+-- ---------------------------------------------------------------------------
+-- AMC_Payment_Schedule — the receipt file column exists in the sheet tab but
+-- was never created in Supabase.
+-- ---------------------------------------------------------------------------
+alter table "AMC_Payment_Schedule" add column if not exists "Payment_Receipt" text;
+
 -- Sanity: list the columns now on the Projects table.
 select column_name
 from information_schema.columns
