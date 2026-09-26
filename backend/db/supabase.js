@@ -30,7 +30,23 @@ const TABLE = {
 };
 const EXTRA = {
   clients:  ['Client_GMap_Location'],
-  projects: ['GMap_Link', 'Client_Id', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name', 'Bill_File_Name', 'PO_File_Name'],
+  projects: [
+    'GMap_Link', 'Client_Id', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name',
+    'Bill_File_Name', 'PO_File_Name',
+    /*  Columns the Projects tab carries and the project form reads via f.sheet
+        from _raw, but that lib/mapping.js never mapped — so clean() dropped
+        them on backfill/insert/update and they came back blank on Supabase
+        (Electricity Bill Available?, Purchase Order Available?, GSTIN?,
+        Quotation Name, the PO/billing name-match toggles, referral, retention,
+        monitoring frequency, TSV, capacity, elevated drawings, and the
+        New-Order-sent stamps). Add them here so they round-trip.          */
+    'Bill_Available', 'PO_Available', 'PO_Bill_Name_Same', 'Billing_Quotation_Same',
+    'GST_Available', 'Quotation_Name',
+    'Referral', 'Referral_Amount', 'Referrer_Name',
+    'Retention', 'Retention_Amount', 'Retention_Period',
+    'Monitoring_Frequency', 'TSV_Required', 'Capacity_Finalised', 'Elevated_drawings',
+    'New_Order_Sent_At', 'New_Order_Sent_By', 'Internal_Id',
+  ],
 };
 const ID_COL = {}, ALLOWED = {};
 for (const k of Object.keys(TABLE)) {

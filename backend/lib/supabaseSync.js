@@ -37,7 +37,19 @@ const TABLE = {
 /* Sheet columns that exist in the tables but aren't in the app field-map. */
 const EXTRA = {
   clients:  ['Client_GMap_Location'],
-  projects: ['GMap_Link', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name', 'Bill_File_Name', 'PO_File_Name'],
+  projects: [
+    'GMap_Link', 'Client_Id', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name',
+    'Bill_File_Name', 'PO_File_Name',
+    /*  Same unmapped Projects columns added to db/supabase.js EXTRA — kept in
+        sync here so the forward mirror (sheet -> Supabase replica) carries them
+        too, rather than silently dropping them.                            */
+    'Bill_Available', 'PO_Available', 'PO_Bill_Name_Same', 'Billing_Quotation_Same',
+    'GST_Available', 'Quotation_Name',
+    'Referral', 'Referral_Amount', 'Referrer_Name',
+    'Retention', 'Retention_Amount', 'Retention_Period',
+    'Monitoring_Frequency', 'TSV_Required', 'Capacity_Finalised', 'Elevated_drawings',
+    'New_Order_Sent_At', 'New_Order_Sent_By', 'Internal_Id',
+  ],
 };
 
 /* Per-table: id column + the set of allowed columns (kept in sync with mapping). */
