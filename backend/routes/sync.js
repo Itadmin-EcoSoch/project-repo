@@ -163,6 +163,9 @@ router.post('/invalidate', (req, res) => {
 /* GET /api/sync/status */
 router.get('/status', async (req, res, next) => {
   try {
+    /*  In Supabase mode the Sheet schema probe is irrelevant (and would hit
+        Apps Script needlessly), so report the data source instead.          */
+    if (db.USE_SUPA) return res.json({ success: true, data: { data_source: 'supabase' } });
     res.json({ success: true, data: await db.schema() });
   } catch (err) { next(err); }
 });
