@@ -31,8 +31,28 @@ alter table "Projects" add column if not exists "New_Order_Sent_At"       text;
 alter table "Projects" add column if not exists "New_Order_Sent_By"       text;
 alter table "Projects" add column if not exists "Internal_Id"             text;
 
+-- ---------------------------------------------------------------------------
+-- AMC_Contracts — same gap: these columns exist in the AMC_Contracts sheet tab
+-- but were never created in Supabase (payment schedule terms, the
+-- tasks/payments-done flags and the annual percent increase).
+-- ---------------------------------------------------------------------------
+alter table "AMC_Contracts" add column if not exists "Payment_Available"        text;
+alter table "AMC_Contracts" add column if not exists "Percent_Increase"         text;
+alter table "AMC_Contracts" add column if not exists "Payment_Frequency"        text;
+alter table "AMC_Contracts" add column if not exists "Payment_Period_in_Years"  text;
+alter table "AMC_Contracts" add column if not exists "Payment_Start_Date"       text;
+alter table "AMC_Contracts" add column if not exists "Payment_End_Date"         text;
+alter table "AMC_Contracts" add column if not exists "AMC_Tasks_Done"           text;
+alter table "AMC_Contracts" add column if not exists "Payments_Done"            text;
+
 -- Sanity: list the columns now on the Projects table.
 select column_name
 from information_schema.columns
 where table_name = 'Projects'
+order by ordinal_position;
+
+-- Sanity: list the columns now on the AMC_Contracts table.
+select column_name
+from information_schema.columns
+where table_name = 'AMC_Contracts'
 order by ordinal_position;

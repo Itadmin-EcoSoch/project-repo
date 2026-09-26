@@ -29,6 +29,15 @@ const TABLE = {
   launcher:     'Launcher',
 };
 const EXTRA = {
+  amc_contracts: [
+    /*  Columns the AMC_Contracts tab carries but lib/mapping.js never mapped,
+        so clean() dropped them on backfill/write and they were blank on
+        Supabase (payment schedule terms, the tasks/payments-done flags and
+        the annual percent increase). Add them so they round-trip.          */
+    'Payment_Available', 'Percent_Increase', 'Payment_Frequency',
+    'Payment_Period_in_Years', 'Payment_Start_Date', 'Payment_End_Date',
+    'AMC_Tasks_Done', 'Payments_Done',
+  ],
   clients:  ['Client_GMap_Location'],
   projects: [
     'GMap_Link', 'Client_Id', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name',
