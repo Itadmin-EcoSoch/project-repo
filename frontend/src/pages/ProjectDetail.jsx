@@ -380,12 +380,10 @@ export default function ProjectDetail() {
     }
     if (rRows.length) out.push({ title: 'Record', icon: '🗂️', rows: rRows });
 
-    /* 4 — anything in the sheet that nothing above claimed */
-    const leftovers = Object.keys(raw)
-      .filter(k => k && !used.has(k))
-      .map(k => push(k, k.replace(/_/g, ' '), display(k, raw[k]) || '—'))
-      .filter(r => showEmpty || r.value !== '—');
-    if (leftovers.length) out.push({ title: 'Other Sheet Columns', icon: '📎', rows: leftovers });
+    /* 4 — leftovers section removed. Supabase rows carry internal columns
+           (synced_at, id) that are not real project fields; dumping them under
+           "Other Sheet Columns" only confused readers, so nothing unclaimed is
+           shown. Add a real column to lib/projectFields.js to surface it. */
 
     return out;
   }, [proj, showEmpty, fileLinks]);

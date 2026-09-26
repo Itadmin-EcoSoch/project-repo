@@ -115,6 +115,15 @@ export default function EditProject() {
                 Keying off the VALUE rather than the control type fixes it for
                 any future radio or select put on a boolean column.        */
             typeof v === 'boolean' ? toYesNo(v) :
+            /*  SUPABASE STORES EVERYTHING AS TEXT, so a boolean column like
+                AMC_Provided arrives as the STRING "true"/"false" — not a real
+                boolean — and the branch above misses it. The radio then
+                compares its ['Yes','No'] options against "false", matches
+                neither, and NEITHER button lights up. Normalise any Yes/No
+                radio through toYesNo, which already understands "true"/"false". */
+            (Array.isArray(f.options) && f.options.length === 2 &&
+              f.options.includes('Yes') && f.options.includes('No'))
+              ? toYesNo(v) :
                         /*  The inverse of the /100 in toProjectPayload. Margin is stored
                 as a fraction because the column is formatted 0.00% and Sheets
                 applies that to the RAW value. The box asks for "Margin%", so
