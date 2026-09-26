@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import api, { refreshFromSheet } from '../lib/api';
+import api from '../lib/api';
 
 const THEMES = [
   { key:'light',  label:'Light',  hint:'Always bright' },
@@ -21,7 +21,6 @@ export default function AccountDrawer({ open, onClose }) {
   const { user, signOut, isAdmin, permissions } = useAuth();
   const { mode, setMode, resolved } = useTheme();
 
-  const [syncing, setSyncing] = useState(false);
   const [health,  setHealth]  = useState(null);
 
   // close on Escape
@@ -40,13 +39,6 @@ export default function AccountDrawer({ open, onClose }) {
 
   const initials = (user?.name || user?.email || '?')
     .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-
-  async function syncNow() {
-    setSyncing(true);
-    await refreshFromSheet();
-    setSyncing(false);
-    window.location.reload();
-  }
 
   function handleSignOut() {
     signOut();
@@ -108,28 +100,6 @@ export default function AccountDrawer({ open, onClose }) {
           </div>
         </div>
 
-        {/* ---- Data ---- */}
-        <div className="drawer-section">
-          <div className="drawer-section-title">Data</div>
-          <button className="drawer-row" onClick={syncNow} disabled={syncing}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-            </svg>
-            <span>{syncing ? 'Syncing…' : 'Sync now from Google Sheet'}</span>
-          </button>
-
-          {health && (
-            <div className="drawer-stats">
-              {[['Clients','clients'],['Projects','projects'],['AMC tasks','amc_tasks'],['Tickets','tickets']]
-                .map(([label,key]) => (
-                  <div key={key} className="drawer-stat">
-                    <span>{label}</span><strong>{health[key]?.rows ?? '—'}</strong>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-
         {/*  ---- Manage ----
              Team members decides who gets into the app at all, so it is
              Admin-only. A Staff account does not see it rather than seeing
@@ -185,7 +155,7 @@ export default function AccountDrawer({ open, onClose }) {
           <div className="drawer-about">
             <div><span>App</span><strong>EcoSoch Project Repository</strong></div>
             <div><span>Version</span><strong>2.0</strong></div>
-            <div><span>Database</span><strong>Google Sheets</strong></div>
+            <div><span>Database</span><strong>{health?.data_source === 'supabase' ? 'Supabase' : 'Google Sheets'}</strong></div>
           </div>
         </div>
 
