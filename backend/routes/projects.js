@@ -356,7 +356,19 @@ router.post('/', async (req, res, next) => {
     /*  Project_ID is minted here, in Node — see lib/uniqueId.js.
         8 characters, base62, checked against every id already in the sheet. */
     row.Project_ID = await newProjectId();
-    row.Created_By      = req.body.changed_by || req.body.submitted_by || 'app';
+    /*  Server-authoritative audit stamp. Created_By is the LOGGED-IN user taken
+        from the JWT (req.user.email), not anything the client sent — the
+        database cannot default this because it has no idea who is signed in.
+        Created_Date / Last_Updated_Date are today's date in IST, in the same
+        'YYYY-MM-DDT00:00:00' shape the rest of the sheet uses.              */
+    {
+      const who   = (req.user && req.user.email) || req.body.changed_by || req.body.submitted_by || 'app';
+      const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10) + 'T00:00:00';
+      row.Created_By        = who;
+      row.Created_Date      = today;
+      row.Last_Updated_By   = who;
+      row.Last_Updated_Date = today;
+    }
     /*  CLAUSE 1 of the AppSheet Valid_If:
             if(ISBLANK(LOOKUP([_THISROW],"Projects","Project_ID","Project_Status")),
                list('Active'), ...)
@@ -471,7 +483,11 @@ router.patch('/:id', async (req, res, next) => {
     const patch = toSheet(MAP.projects, updates, { geoCol: GEO });
     delete patch.Project_ID;
     delete patch.Created_Date;
-    patch.Last_Updated_By = changed_by || 'app';
+    delete patch.Created_By;          // never let an edit rewrite who created it
+    /*  Stamp the updater (logged-in JWT identity, not client-supplied) and
+        today's date (IST). */
+    patch.Last_Updated_By   = (req.user && req.user.email) || changed_by || 'app';
+    patch.Last_Updated_Date = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10) + 'T00:00:00';
 
     /*  One spelling only. Without this the Edit form wrote "Defaulted" while
         the sheet already held "Defaulted - Project Payment", and the projects

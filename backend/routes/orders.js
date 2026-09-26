@@ -78,6 +78,18 @@ router.post('/', async (req, res, next) => {
       ? projectData.Project_ID
       : await newProjectId();
 
+    /*  Server-authoritative audit stamp on the project row — logged-in user
+        from the JWT and today's date (IST). Set before the write so it lands
+        in both Supabase and the Sheet. */
+    {
+      const who   = (req.user && req.user.email) || submitted_by || 'staff';
+      const today = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10) + 'T00:00:00';
+      projectRow.Created_By        = who;
+      projectRow.Created_Date      = today;
+      projectRow.Last_Updated_By   = who;
+      projectRow.Last_Updated_Date = today;
+    }
+
     /* one atomic round-trip to the sheet */
     const out = await db.createOrder({
       client_type : client_type || 'new',
