@@ -27,7 +27,7 @@ import {
   AMC_OPTIONS, VISIT_FREQUENCIES, PAYMENT_FREQ_BY_VISITS, fmtDate, amcEndDatePreview,
 } from '../lib/solarcare';
 import { Loading } from './ProjectSolarCare';
-import { page, Card, Field, SInput, SSelect, SelectOrType, Footer, C, Row } from './formKit';
+import { page, Card, Field, SInput, SSelect, SelectOrType, Footer, C, Row , DateField } from './formKit';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -363,7 +363,7 @@ function ContractBlock({ title, emoji, color, value, onChange, projectId, kind }
       </Field>
 
       <Field label="Contract start date" required>
-        <SInput type="date" value={value.start_date} onChange={e => set('start_date', e.target.value)} />
+        <DateField value={value.start_date} onChange={v => set('start_date', v)} />
       </Field>
 
       {/*  Read-only — always Start Date + Years + Visits/year, calculated the
