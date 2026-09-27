@@ -103,7 +103,9 @@ async function req(url, opts = {}) {
 const NUM_COLS = {
   projects: new Set([
     'Project_Size', 'Module_Wattage', 'Module_No', 'Order_Value', 'Margin',
-    'Warranty_Period', 'Referral_Amount', 'Retention_Amount', 'Retention_Period',
+    'Warranty_Period', 'Referral_Amount', 'Retention_Amount',
+    // Retention_Period stays TEXT — it holds values like 'NA', '1 year',
+    // 'As per the tariff Rate', not just numbers.
   ]),
 };
 const DATE_COLS = {
