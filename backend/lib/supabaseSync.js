@@ -93,6 +93,10 @@ function headers() {
 
 /** Keep only real table columns, and never send an empty/idless row. */
 const NUM_COLS = {
+  amc_payments: new Set(['Payment_Amount']),
+  tickets: new Set([
+    'Service_Charge', 'Material_Charge', 'Total_Charge', 'Ticket_Warranty_Period',
+  ]),
   amc_contracts: new Set([
     'AMC_Frequency', 'AMC_Period_in_Years', 'Payment_Amount', 'Tasks_Count',
     'Payments_Count', 'Percent_Increase', 'Payment_Frequency',
@@ -106,6 +110,13 @@ const NUM_COLS = {
   ]),
 };
 const DATE_COLS = {
+  amc_payments: new Set(['Payment_Due_Date']),
+  amc_tasks: new Set(['AMC_Due_Date']),
+  tickets: new Set([
+    'Ticket_Start_Date', 'Ticket_Due_Date',
+    'Ticket_Warranty_Start_Date', 'Ticket_Warranty_End_Date',
+    'Created_Date', 'Last_Updated_Date',
+  ]),
   amc_contracts: new Set([
     'AMC_Start_Date', 'AMC_End_Date', 'Payment_Start_Date', 'Payment_End_Date',
   ]),
