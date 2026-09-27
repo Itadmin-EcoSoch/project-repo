@@ -95,11 +95,44 @@ async function req(url, opts = {}) {
     return { res, body: text ? JSON.parse(text) : null };
   } finally { clearTimeout(t); }
 }
+/*  Columns that are numeric / date types in Supabase (see the type-change SQL).
+    They reject '' — so an empty value must become NULL, numbers must drop any
+    thousands commas, and dates must be a bare 'YYYY-MM-DD'. Sending strings
+    keeps this safe whether the column is still text or already retyped, because
+    Postgres coerces the string to the column type. */
+const NUM_COLS = {
+  projects: new Set([
+    'Project_Size', 'Module_Wattage', 'Module_No', 'Order_Value', 'Margin',
+    'Warranty_Period', 'Referral_Amount', 'Retention_Amount', 'Retention_Period',
+  ]),
+};
+const DATE_COLS = {
+  projects: new Set([
+    'Commissioned_Date', 'Warranty_Start_Date', 'Warranty_End_Date',
+    'Exp_Inst_Date', 'Exp_Commsn_Date', 'Created_Date', 'Last_Updated_Date',
+    'New_Order_Sent_At',
+  ]),
+};
+
 /* keep only real columns; drop null/undefined -> stringify to mirror the Sheet */
 function clean(key, row) {
   const allow = ALLOWED[key]; const out = {};
+  const num = NUM_COLS[key]; const dat = DATE_COLS[key];
   for (const [k, v] of Object.entries(row || {})) {
-    if (allow.has(k)) out[k] = (v === undefined || v === null) ? null : (typeof v === 'boolean' ? v : String(v));
+    if (!allow.has(k)) continue;
+    if (v === undefined || v === null) { out[k] = null; continue; }
+    if (typeof v === 'boolean') { out[k] = v; continue; }
+    if (num && num.has(k)) {
+      const sv = String(v).replace(/,/g, '').trim();
+      out[k] = sv === '' ? null : sv;             // numeric string; '' -> NULL
+      continue;
+    }
+    if (dat && dat.has(k)) {
+      const sv = String(v).trim();
+      out[k] = sv === '' ? null : (/^\d{4}-\d{2}-\d{2}/.test(sv) ? sv.slice(0, 10) : sv);
+      continue;
+    }
+    out[k] = String(v);
   }
   return out;
 }

@@ -92,11 +92,37 @@ function headers() {
 }
 
 /** Keep only real table columns, and never send an empty/idless row. */
+const NUM_COLS = {
+  projects: new Set([
+    'Project_Size', 'Module_Wattage', 'Module_No', 'Order_Value', 'Margin',
+    'Warranty_Period', 'Referral_Amount', 'Retention_Amount', 'Retention_Period',
+  ]),
+};
+const DATE_COLS = {
+  projects: new Set([
+    'Commissioned_Date', 'Warranty_Start_Date', 'Warranty_End_Date',
+    'Exp_Inst_Date', 'Exp_Commsn_Date', 'Created_Date', 'Last_Updated_Date',
+    'New_Order_Sent_At',
+  ]),
+};
 function clean(key, row) {
   const allow = ALLOWED[key];
+  const num = NUM_COLS[key]; const dat = DATE_COLS[key];
   const out = {};
   for (const [k, v] of Object.entries(row || {})) {
-    if (allow.has(k)) out[k] = (v === undefined || v === null) ? null : String(v);
+    if (!allow.has(k)) continue;
+    if (v === undefined || v === null) { out[k] = null; continue; }
+    if (num && num.has(k)) {
+      const sv = String(v).replace(/,/g, '').trim();
+      out[k] = sv === '' ? null : sv;
+      continue;
+    }
+    if (dat && dat.has(k)) {
+      const sv = String(v).trim();
+      out[k] = sv === '' ? null : (/^\d{4}-\d{2}-\d{2}/.test(sv) ? sv.slice(0, 10) : sv);
+      continue;
+    }
+    out[k] = String(v);
   }
   out.synced_at = new Date().toISOString();
   return out;
