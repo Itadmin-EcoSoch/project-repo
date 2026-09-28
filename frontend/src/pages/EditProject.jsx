@@ -181,6 +181,10 @@ export default function EditProject() {
           }
         }
 
+        /*  A contract already exists for this project, so its visits/year and
+            years are locked read-only on the edit form (schedule drivers). */
+        if (Array.isArray(p.contracts) && p.contracts.length) amcSeed._amcLocked = true;
+
                 /*  isCommissioned is transient — no column of its own. The answer is
             simply whether Commissioned_Date holds a date, so derive it rather
             than showing a blank question on every edit.                    */

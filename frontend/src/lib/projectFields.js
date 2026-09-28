@@ -923,10 +923,14 @@ export const PROJECT_SECTIONS = [
             Inverter Brand or Project Type does, so it stays open to any
             user rather than routed through the Admin screen.              */
         allowNew: true, keepCustom: true, addLabel: '＋ Enter a different number',
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspYears', label: 'Inspection — for how many years?',
         type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspStart', label: 'Inspection start date', type: 'date',
@@ -972,10 +976,14 @@ export const PROJECT_SECTIONS = [
         type: 'select', options: AMC_VISITS_PER_YEAR.map(String), transient: true,
         width: 'quarter',
         allowNew: true, keepCustom: true, addLabel: '＋ Enter a different number',
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanYears', label: 'Cleaning — for how many years?',
         type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanStart', label: 'Cleaning start date', type: 'date',
