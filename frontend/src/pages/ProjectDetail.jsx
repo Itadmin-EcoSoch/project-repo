@@ -443,8 +443,8 @@ export default function ProjectDetail() {
       `}</style>
 
       <div className="pd-hero" style={{background:'var(--slate-900)',padding:'16px 16px 14px',position:'sticky',top:0,zIndex:50,overflow:'hidden',boxShadow:'0 6px 18px rgba(15,23,42,.22)'}}>
-        <div style={{position:'absolute',top:-20,right:-20,width:120,height:120,borderRadius:'50%',background:'rgba(0,135,90,.12)'}}/>
-        <div style={{position:'absolute',bottom:-30,right:40,width:80,height:80,borderRadius:'50%',background:'rgba(0,168,107,.08)'}}/>
+        <div style={{position:'absolute',top:-20,right:-20,width:120,height:120,borderRadius:'50%',background:'rgba(0,135,90,.12)',pointerEvents:'none'}}/>
+        <div style={{position:'absolute',bottom:-30,right:40,width:80,height:80,borderRadius:'50%',background:'rgba(0,168,107,.08)',pointerEvents:'none'}}/>
         <div style={{display:'flex',alignItems:'flex-start',gap:16,flexWrap:'wrap'}}>
           <div style={{flex:'1 1 320px',minWidth:0}}>
             <div
@@ -481,7 +481,7 @@ export default function ProjectDetail() {
                         onClick={()=>scrollToSection('attachments-section')} />
             <HeroAction icon="✉️" label="New Order Email"
                         onClick={()=>setEmailOpen(true)} />
-            <HeroAction icon="⚡" label="Solar Care" primary
+            <HeroAction icon="⚡" label="Solar Care"
                         onClick={()=>navigate(`/projects/${id}/solar-care`, { state:{ from: backTo } })} />
             <HeroAction icon="🎫" label="Raise a ticket"
                         onClick={()=>navigate(`/projects/${id}/tickets/new`, { state:{ from: backTo } })} />
