@@ -19,7 +19,6 @@ import {
   TableRow,
   TableCell,
   IconButton,
-  Chip
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -172,8 +171,6 @@ export default function Users() {
 
               <TableCell>Role</TableCell>
 
-              <TableCell>Status</TableCell>
-
               <TableCell align="center">
 
                 Actions
@@ -203,24 +200,6 @@ export default function Users() {
                 <TableCell>{user.department}</TableCell>
 
                 <TableCell>{user.role}</TableCell>
-
-                <TableCell>
-
-                  <Chip
-
-                    label={user.status || "Active"}
-
-                    color={
-                      String(user.status || "Active").toLowerCase() === "active"
-                        ? "success"
-                        : "default"
-                    }
-
-                    size="small"
-
-                  />
-
-                </TableCell>
 
                 <TableCell align="center">
 
