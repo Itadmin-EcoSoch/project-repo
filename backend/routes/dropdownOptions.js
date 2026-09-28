@@ -53,6 +53,8 @@ const express = require('express');
 const router  = express.Router();
 
 const db   = require('../db');
+const crypto = require('crypto');
+const hex8 = () => crypto.randomBytes(4).toString('hex').toUpperCase();
 const perm = require('../lib/permissions');
 const { REQUIRE_AUTH } = require('../middleware/auth');
 
@@ -146,6 +148,9 @@ router.post('/', async (req, res, next) => {
     }
 
     const saved = await db.insert('dropdown_options', {
+      /*  In Supabase mode Option_Id is the primary key and must be supplied
+          (Apps Script mints it in Sheet mode). */
+      ...(db.USE_SUPA ? { Option_Id: hex8() } : {}),
       Field_Key : fieldKey,
       Value     : value,
       Active    : true,

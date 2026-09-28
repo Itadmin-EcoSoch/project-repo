@@ -32,6 +32,7 @@ const TABLE = {
   tickets:      'Tickets',
   users:        'Users',
   launcher:     'Launcher',
+  dropdown_options: 'dropdowns',
 };
 
 /* Sheet columns that exist in the tables but aren't in the app field-map. */

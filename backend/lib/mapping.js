@@ -195,7 +195,18 @@ const launcher = {
   role_restrictions: 'User_Role',
 };
 
-const MAP = { clients, projects, amc_contracts, amc_tasks, amc_payments, tickets, users, launcher };
+const dropdown_options = {
+  id        : 'Option_Id',
+  field_key : 'Field_Key',
+  value     : 'Value',
+  active    : 'Active',
+  created_by: 'Created_By',
+  created_at: 'Created_Date',
+  updated_by: 'Last_Updated_By',
+  updated_at: 'Last_Updated_Date',
+};
+
+const MAP = { clients, projects, amc_contracts, amc_tasks, amc_payments, tickets, users, launcher, dropdown_options };
 
 /* ─────────────────────────── helpers ─────────────────────────── */
 

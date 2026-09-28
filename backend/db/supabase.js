@@ -27,6 +27,7 @@ const TABLE = {
   tickets:      'Tickets',
   users:        'Users',
   launcher:     'Launcher',
+  dropdown_options: 'dropdowns',
 };
 const EXTRA = {
   tickets: [
