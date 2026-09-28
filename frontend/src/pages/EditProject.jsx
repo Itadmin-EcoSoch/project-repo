@@ -420,10 +420,20 @@ export default function EditProject() {
         try {
           const r = await api.post('/api/amc-setup/create', amc);
           const d = r?.data ?? r;
+          /*  AMC term edits (visits/year, years, start date, payment terms) live
+              on AMC_Contracts, not the Projects row, so they are not in the PATCH
+              diff. Merge them in so the "Updated Order" email lists them too.   */
+          const amcChanges = Array.isArray(d?.changes) ? d.changes : [];
+          if (amcChanges.length) {
+            changes = [...changes, ...amcChanges];
+            setSavedChanges(changes);
+          }
           const n = d?.contracts?.length || 0;
-          toast.success(n
-            ? `AMC schedule created · ${d.total_visits || 0} visit${(d.total_visits || 0) === 1 ? '' : 's'}`
-            : 'AMC already set up — no duplicate created');
+          toast.success(amcChanges.length
+            ? `AMC updated · ${amcChanges.length} term${amcChanges.length > 1 ? 's' : ''} changed`
+            : (n
+                ? `AMC schedule created · ${d.total_visits || 0} visit${(d.total_visits || 0) === 1 ? '' : 's'}`
+                : 'AMC already set up — no changes'));
         } catch (e) {
           toast.error(e.message || 'Could not create the AMC schedule');
         }

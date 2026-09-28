@@ -287,6 +287,104 @@ async function createOneContract(spec, { addMonthsTable, force = false } = {}) {
 }
 
 /**
+ * Update an EXISTING contract's terms and rebuild its schedule.
+ * Done / Skipped visits are preserved (history); Pending visits are deleted and
+ * the remaining schedule is regenerated from the new terms. Payments referenced
+ * by kept visits are preserved; the rest are regenerated. Returns the list of
+ * changed terms ({label, from, to}) for the update email.
+ */
+async function updateOneContract(existing, spec, { addMonthsTable } = {}) {
+  const table = addMonthsTable || await loadAddMonths();
+  const amcId = String(existing.AMC_Id);
+  const type  = spec.amc_type;
+
+  /*  The edit form only seeds visits/year, years and start date — it does NOT
+      seed the payment terms. So those must be carried over from the existing
+      contract, or saving would wipe the payment schedule. Only visits/years/
+      start date are editable here. */
+  spec = {
+    ...spec,
+    status            : spec.status || existing.AMC_Status || 'Active',
+    payment_available : existing.Payment_Available,
+    payment_amount    : existing.Payment_Amount,
+    percent_increase  : existing.Percent_Increase,
+    payment_frequency : existing.Payment_Frequency,
+    payment_start_date: existing.Payment_Start_Date || '',
+  };
+
+  /* what actually changed (only the editable terms) */
+  const changes = [];
+  const cmp = (label, before, after) => {
+    if (String(before ?? '').trim() !== String(after ?? '').trim())
+      changes.push({ label, from: String(before ?? '') || '\u2014', to: String(after ?? '') || '\u2014' });
+  };
+  cmp(`${type}: visits per year`, existing.AMC_Frequency,       spec.frequency);
+  cmp(`${type}: number of years`, existing.AMC_Period_in_Years, spec.period_years);
+  cmp(`${type}: start date`,      existing.AMC_Start_Date,      spec.start_date);
+
+  if (!changes.length) return { amc_id: amcId, amc_type: type, changes: [], updated: false, visits_created: 0, payments_created: 0 };
+
+  const check = amc.validateContract(spec, { addMonthsTable: table });
+  if (!check.ok) { const e = new Error(check.errors.join(' ')); e.status = 400; e.details = check; throw e; }
+  const d = check.derived;
+
+  /* 1. update the contract terms */
+  const patch = toSheet(MAP.amc_contracts, {
+    frequency: spec.frequency, period_years: spec.period_years,
+    start_date: spec.start_date, end_date: d.end_date,
+    payment_amount: spec.payment_amount, tasks_count: d.total_tasks, payments_count: d.total_payments,
+  });
+  Object.assign(patch, {
+    Payment_Available      : truthy(spec.payment_available),
+    Percent_Increase       : spec.percent_increase || 0,
+    Payment_Frequency      : spec.payment_frequency || '',
+    Payment_Period_in_Years: d.payment_period_years,
+    Payment_Start_Date     : d.payment_start_date,
+    Payment_End_Date       : d.payment_end_date,
+  });
+  await db.update('amc_contracts', amcId, patch);
+
+  /* 2. partition existing visits — keep Done/Skipped, delete the rest */
+  const isDone = v => ['done', 'skipped'].includes(String(v.AMC_Task_Status || '').trim().toLowerCase());
+  const { data: exVisits = [] } = await db.list('amc_tasks', { where: { AMC_Id: amcId } });
+  const keptVisits = exVisits.filter(isDone);
+  for (const v of exVisits.filter(v => !isDone(v))) {
+    try { await db.remove('amc_tasks', v.AMC_Task_Id); } catch (e) { /* best effort */ }
+  }
+
+  /* 3. keep payments referenced by kept visits, drop the rest */
+  const keptPayIds = new Set(keptVisits.map(v => String(v.Payment_Id || '')).filter(Boolean));
+  const { data: exPayments = [] } = await db.list('amc_payments', { where: { AMC_Id: amcId } });
+  const keptPayments = exPayments.filter(p => keptPayIds.has(String(p.Payment_Id)));
+  for (const p of exPayments.filter(p => !keptPayIds.has(String(p.Payment_Id)))) {
+    try { await db.remove('amc_payments', p.Payment_Id); } catch (e) { /* best effort */ }
+  }
+
+  /* 4. regenerate the schedule; insert only the portion after what was kept */
+  const ids = { amcId, projectId: spec.project_id, amcType: type, addMonthsTable: table };
+  const genPayments = amc.generatePayments(spec, ids);
+  const newPaySpecs = genPayments.slice(keptPayments.length);
+  const newPayIdPool = newPaySpecs.length ? await newUniqueIds('amc_payments', newPaySpecs.length, { fresh: false }) : [];
+  const newPayPayload = newPaySpecs.map((p, i) => {
+    const row = toSheet(MAP.amc_payments, { amc_id: amcId, amc_type: type, amount: p.amount, due_date: p.due_date, description: p.description, status: p.status });
+    row.Payment_Baseamount = p.base_amount; row.Payment_Id = newPayIdPool[i]; return row;
+  });
+  const newPayments = newPaySpecs.length ? await db.insertMany('amc_payments', newPayPayload) : [];
+
+  const allPaymentIds = [...keptPayments.map(p => p.Payment_Id), ...newPayments.map(p => p.Payment_Id)];
+  const genTasks = amc.generateTasks(spec, { ...ids, paymentIds: allPaymentIds });
+  const newTaskSpecs = genTasks.slice(keptVisits.length);
+  const newTaskIdPool = newTaskSpecs.length ? await newUniqueIds('amc_tasks', newTaskSpecs.length, { fresh: false }) : [];
+  const newTaskPayload = newTaskSpecs.map((t, i) => {
+    const row = toSheet(MAP.amc_tasks, { amc_id: amcId, project_id: spec.project_id, amc_type: type, due_date: t.due_date, description: t.description, status: t.status, payment_id: t.payment_id });
+    row.AMC_Task_Id = newTaskIdPool[i]; return row;
+  });
+  const newVisits = newTaskSpecs.length ? await db.insertMany('amc_tasks', newTaskPayload) : [];
+
+  return { amc_id: amcId, amc_type: type, changes, updated: true, visits_created: newVisits.length, payments_created: newPayments.length };
+}
+
+/**
  * The Solar Care entry point.
  *
  * body = {
@@ -327,21 +425,29 @@ async function createSolarCareAMC(body = {}) {
   /*  Skip a type that already has a contract on this project, so editing a
       project and saving again cannot create duplicate AMC schedules.        */
   const existingTypes = new Set();
+  let existingRows = [];
   try {
     const { data: existing } = await db.list('amc_contracts', { where: { Project_ID: projectId } });
-    (existing || []).forEach(c => {
-      if (String(c.AMC_Status || '').trim().toLowerCase() !== 'cancelled') {
-        existingTypes.add(String(c.AMC_Type || '').trim().toLowerCase());
-      }
-    });
+    existingRows = (existing || []).filter(c => String(c.AMC_Status || '').trim().toLowerCase() !== 'cancelled');
+    existingRows.forEach(c => existingTypes.add(String(c.AMC_Type || '').trim().toLowerCase()));
   } catch (e) { /* lookup failed — fall through and create as before */ }
 
   const created = [];
+  const changes = [];
 
   for (const type of types) {
-    if (existingTypes.has(type.toLowerCase())) continue;   // already has a contract of this type
     const block = type === INSPECTION ? (body.inspection || body) : (body.cleaning || body);
     const spec  = readTypeSpec(block, type, projectId);
+    if (existingTypes.has(type.toLowerCase())) {
+      /*  Already has a contract of this type — UPDATE its terms and rebuild the
+          schedule instead of skipping, so edits actually take effect.        */
+      const ex = existingRows.find(c => String(c.AMC_Type || '').trim().toLowerCase() === type.toLowerCase());
+      if (ex) {
+        const upd = await updateOneContract(ex, spec, { addMonthsTable });
+        if (upd.updated) { created.push(upd); changes.push(...upd.changes); }
+      }
+      continue;
+    }
     created.push(await createOneContract(spec, { addMonthsTable, force: body.force }));
   }
 
@@ -370,8 +476,9 @@ async function createSolarCareAMC(body = {}) {
     project_name    : project.Project_Name || '',
     amc_option      : types.length === 2 ? 'Both' : types[0],
     contracts       : created,
-    total_visits    : created.reduce((n, c) => n + c.visits_created, 0),
-    total_payments  : created.reduce((n, c) => n + c.payments_created, 0),
+    changes,
+    total_visits    : created.reduce((n, c) => n + (c.visits_created || 0), 0),
+    total_payments  : created.reduce((n, c) => n + (c.payments_created || 0), 0),
   };
 }
 
@@ -386,5 +493,6 @@ module.exports = {
   loadAddMonths,
   previewSolarCareAMC,
   createOneContract,
+  updateOneContract,
   createSolarCareAMC,
 };
