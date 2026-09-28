@@ -935,6 +935,8 @@ export const PROJECT_SECTIONS = [
 
       { name: 'inspStart', label: 'Inspection start date', type: 'date',
         transient: true, width: 'quarter',
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       /*  Read-only preview, kept in step with inspStart/inspVisits/inspYears
@@ -988,6 +990,8 @@ export const PROJECT_SECTIONS = [
 
       { name: 'cleanStart', label: 'Cleaning start date', type: 'date',
         transient: true, width: 'quarter',
+        readOnlyIf: f => !!f._amcLocked,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanEnd', label: 'Cleaning End Date', type: 'readonly',
