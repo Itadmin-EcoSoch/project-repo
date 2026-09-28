@@ -131,7 +131,7 @@ export default function EditProject() {
                 again and turn 12% into 0.12%.                             */
             (f.type === 'percent' && v !== '' && v !== null && v !== undefined
               && !Number.isNaN(Number(v)))
-              ? String(Math.round(Number(v) * 1000) / 10) :
+              ? String(Math.round(Number(v) * 10) / 10) :
             ((v === undefined || v === null) ? '' : v);
           /*  The original filename, saved alongside the Drive path — see
               fileNameKey in lib/projectFields.js. Older rows saved before

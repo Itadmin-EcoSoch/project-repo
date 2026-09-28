@@ -1284,7 +1284,9 @@ export function toProjectPayload(form, extra = {}) {
 
           Divide on the way out, and only here — the form keeps showing the
           human number the user typed.                                      */
-      if (f.type === 'percent' && v !== '') v = (Math.round(Number(v) * 10) / 10) / 100;
+      /*  Margin is stored as a WHOLE percent now (12 = 12%, 54.9 = 54.9%),
+          not a fraction. Keep one decimal; do not divide by 100.          */
+      if (f.type === 'percent' && v !== '') v = Math.round(Number(v) * 10) / 10;
     }
     out[f.sheet] = v ?? '';
 

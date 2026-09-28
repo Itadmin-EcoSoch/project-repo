@@ -118,7 +118,7 @@ function display(col, value, type) {
     if (s.endsWith('%')) return s;
     const n = Number(s);
     if (Number.isNaN(n)) return s;
-    return n <= 1 ? `${Number((n * 100).toFixed(2))}%` : `${n}%`;
+    return `${Number(n.toFixed(2))}%`;   // Margin is stored as a whole percent
   }
   if (type === 'date' || isDateCol(col)) return /(_At)$/.test(col) ? fmtDateTime(s) : fmtDate(s);
   return s;
