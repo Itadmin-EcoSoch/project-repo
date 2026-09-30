@@ -172,18 +172,16 @@ export default function EditProject() {
             amcSeed.inspYears  = years  === '' ? '' : String(years);
             amcSeed.inspStart  = toDateInput(start);
             if (file) amcSeed.inspFile = file;
+            amcSeed._amcLockedInsp = true;   // an Inspection contract exists -> lock its terms
           }
           if (type.includes('clean')) {
             amcSeed.cleanVisits = visits === '' ? '' : String(visits);
             amcSeed.cleanYears  = years  === '' ? '' : String(years);
             amcSeed.cleanStart  = toDateInput(start);
             if (file) amcSeed.cleanFile = file;
+            amcSeed._amcLockedClean = true;  // a Cleaning contract exists -> lock its terms
           }
         }
-
-        /*  A contract already exists for this project, so its visits/year and
-            years are locked read-only on the edit form (schedule drivers). */
-        if (Array.isArray(p.contracts) && p.contracts.length) amcSeed._amcLocked = true;
 
                 /*  isCommissioned is transient — no column of its own. The answer is
             simply whether Commissioned_Date holds a date, so derive it rather

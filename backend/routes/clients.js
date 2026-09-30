@@ -26,7 +26,10 @@ router.get('/', async (req, res, next) => {
           route — pasting an id from the sheet or a URL should find the row.  */
       /*  Search clients by name and email only. */
       searchFields: 'Client_Name,Client_Email,Client_Mobile',
-      reverse: true,          // newest rows are at the bottom of the sheet
+      /*  Newest first. Clients has no created-date column, so in Supabase mode
+          order by synced_at (set on every insert) as the recency proxy; in
+          Sheet mode reverse the sheet order (new rows append at the bottom). */
+      ...(db.USE_SUPA ? { sort: 'synced_at', order: 'desc' } : { reverse: true }),
 
       limit : Number(limit),
       offset,

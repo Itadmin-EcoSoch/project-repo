@@ -202,7 +202,7 @@ async function list(key, params = {}) {
     qs.push(`or=(${ors})`);
   }
 
-  if (params.sort) qs.push(`order=${encodeURIComponent(params.sort)}.${(String(params.order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'}`);
+  if (params.sort) qs.push(`order=${encodeURIComponent(params.sort)}.${(String(params.order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'}.nullslast`);
   if (Number(params.limit)  > 0) qs.push(`limit=${Number(params.limit)}`);
   if (Number(params.offset) > 0) qs.push(`offset=${Number(params.offset)}`);
 

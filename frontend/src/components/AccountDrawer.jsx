@@ -154,7 +154,7 @@ export default function AccountDrawer({ open, onClose }) {
           <div className="drawer-section-title">About</div>
           <div className="drawer-about">
             <div><span>App</span><strong>EcoSoch Project Repository</strong></div>
-            <div><span>Version</span><strong>2.0</strong></div>
+            <div><span>Version</span><strong>2.1</strong></div>
             <div><span>Database</span><strong>{health?.data_source === 'supabase' ? 'Supabase' : 'Google Sheets'}</strong></div>
           </div>
         </div>
