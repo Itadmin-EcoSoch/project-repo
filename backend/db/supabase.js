@@ -102,6 +102,7 @@ async function req(url, opts = {}) {
     keeps this safe whether the column is still text or already retyped, because
     Postgres coerces the string to the column type. */
 const NUM_COLS = {
+  dropdown_options: new Set(['Sort_Order']),
   amc_payments: new Set(['Payment_Amount']),
   tickets: new Set([
     'Service_Charge', 'Material_Charge', 'Total_Charge', 'Ticket_Warranty_Period',

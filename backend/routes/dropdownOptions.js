@@ -77,6 +77,7 @@ const truthy = v => /^(true|yes|y|1)$/i.test(String(v ?? '').trim());
 const asOption = r => ({
   id        : r.Option_Id,
   field_key : r.Field_Key,
+  sort_order: (r.Sort_Order === null || r.Sort_Order === undefined || r.Sort_Order === '') ? null : Number(r.Sort_Order),
   value     : r.Value,
   /*  Active defaults to true when the column is blank — every option created
       through this screen sets it explicitly, but a row someone adds by hand
@@ -147,6 +148,8 @@ router.post('/', async (req, res, next) => {
       return res.status(409).json({ success: false, error: `"${value}" is already on this list.` });
     }
 
+    /*  Append at the end of this list's current order. */
+    const nextOrder = existing.reduce((m, r) => Math.max(m, Number(r.Sort_Order) || 0), 0) + 1;
     const saved = await db.insert('dropdown_options', {
       /*  In Supabase mode Option_Id is the primary key and must be supplied
           (Apps Script mints it in Sheet mode). */
@@ -154,10 +157,32 @@ router.post('/', async (req, res, next) => {
       Field_Key : fieldKey,
       Value     : value,
       Active    : true,
+      Sort_Order: nextOrder,
       Created_By: req.user?.email || b.created_by || '',
     });
 
     res.status(201).json({ success: true, message: 'Option added', data: asOption(saved) });
+  } catch (err) { next(err); }
+});
+
+/* PUT /api/dropdown-options/reorder   body: { field_key, ids:[...] in new order } */
+router.put('/reorder', async (req, res, next) => {
+  try {
+    const fieldKey = String(req.body?.field_key || '').trim();
+    const ids      = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    if (!fieldKey || !ids.length) {
+      return res.status(400).json({ success: false, error: 'field_key and ids are required' });
+    }
+    if (REQUIRE_AUTH && !OPEN_TO_ANY_STAFF.has(fieldKey)) {
+      if (!req.user) return res.status(401).json({ success: false, error: 'Sign in required', code: 'AUTH_REQUIRED' });
+      if (!perm.can(req.user.role, 'manage_dropdowns')) {
+        return res.status(403).json({ success: false, error: `Only an Admin can reorder "${fieldKey}".`, code: 'FORBIDDEN', capability: 'manage_dropdowns' });
+      }
+    }
+    for (let i = 0; i < ids.length; i++) {
+      await db.update('dropdown_options', ids[i], { Sort_Order: i });
+    }
+    res.json({ success: true, message: 'Order saved', count: ids.length });
   } catch (err) { next(err); }
 });
 

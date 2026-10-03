@@ -200,6 +200,7 @@ const dropdown_options = {
   field_key : 'Field_Key',
   value     : 'Value',
   active    : 'Active',
+  sort_order: 'Sort_Order',
   created_by: 'Created_By',
   created_at: 'Created_Date',
   updated_by: 'Last_Updated_By',

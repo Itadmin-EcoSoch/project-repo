@@ -87,5 +87,7 @@ export const addDropdownOption     = (fieldKey, value) =>
   api.post('/api/dropdown-options', { field_key: fieldKey, value });
 export const deleteDropdownOption  = (id) =>
   api.delete(`/api/dropdown-options/${encodeURIComponent(id)}`);
+export const reorderDropdownOptions = (fieldKey, ids) =>
+  api.put('/api/dropdown-options/reorder', { field_key: fieldKey, ids });
 
 export default api;
