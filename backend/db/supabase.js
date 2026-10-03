@@ -203,15 +203,27 @@ async function list(key, params = {}) {
   }
 
   if (params.sort) qs.push(`order=${encodeURIComponent(params.sort)}.${(String(params.order || 'desc').toLowerCase() === 'asc') ? 'asc' : 'desc'}.nullslast`);
-  if (Number(params.limit)  > 0) qs.push(`limit=${Number(params.limit)}`);
-  if (Number(params.offset) > 0) qs.push(`offset=${Number(params.offset)}`);
 
-  const url = `${REST}/${encodeURIComponent(tab)}?${qs.join('&')}`;
-  const { res, body } = await req(url, { headers: headers({ Prefer: 'count=exact' }) });
-  const rows = Array.isArray(body) ? body : [];
-  const cr = res.headers.get('content-range') || '';           // "0-24/1500"
-  const total = cr.includes('/') ? Number(cr.split('/')[1]) || rows.length : rows.length;
-  return { data: rows, total };
+  const base = `${REST}/${encodeURIComponent(tab)}?${qs.join('&')}`;
+
+  /*  Page PAST PostgREST's 1000-row cap so the FULL filtered set comes back.
+      The projects/clients list routes pull the whole set and then filter/slice
+      in memory, so a single capped request silently hid every row beyond 1000
+      (e.g. 1,588 projects showed as 1,000). Range headers, same as all().   */
+  const page = 1000; let from = 0; const rowsAll = [];
+  for (;;) {
+    const { body } = await req(base, { headers: headers({ Range: `${from}-${from + page - 1}` }) });
+    const rows = Array.isArray(body) ? body : [];
+    rowsAll.push(...rows);
+    if (rows.length < page) break;
+    from += page;
+  }
+
+  const total = rowsAll.length;
+  const off = Number(params.offset) > 0 ? Number(params.offset) : 0;
+  const lim = Number(params.limit)  > 0 ? Number(params.limit)  : 0;
+  const data = (off || lim) ? rowsAll.slice(off, lim ? off + lim : undefined) : rowsAll;
+  return { data, total };
 }
 
 async function get(key, id) {
