@@ -34,7 +34,11 @@ router.use(express.json({ limit: `${Math.ceil(MAX_MB * 1.4)}mb` }));
 const ALLOWED = new Set([
   'pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'gif',
   'xls', 'xlsx', 'xlsm', 'csv', 'doc', 'docx', 'ppt', 'pptx', 'txt',
+  'zip',
 ]);
+/*  Extra types allowed only on specific columns. Other Files (the Projects
+    "Files" column) also accepts MP4 video. */
+const ALLOWED_BY_COLUMN = { Files: new Set(['mp4']) };
 
 const extOf = name => String(name || '').split('.').pop().toLowerCase();
 
@@ -71,10 +75,11 @@ router.post('/', async (req, res, next) => {
     }
 
     const ext = extOf(filename);
-    if (!ALLOWED.has(ext)) {
+    const allowed = new Set([...ALLOWED, ...((ALLOWED_BY_COLUMN[column] || []))]);
+    if (!allowed.has(ext)) {
       return res.status(400).json({
         success: false,
-        error: `.${ext} files are not accepted. Allowed: ${[...ALLOWED].join(', ')}`,
+        error: `.${ext} files are not accepted. Allowed: ${[...allowed].join(', ')}`,
       });
     }
 
