@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTheme } from '../hooks/useTheme';
 import {
   TEXT_MAX, TEXTAREA_MAX, PHONE_MAX,
   sanitizeText, tidyOnBlur, sanitizePhoneDigits, counterFor,
@@ -49,7 +50,13 @@ export const STATUSES = [
 ];
 
 /* ── Design tokens (mirror CSS vars for inline use) ──────────────── */
+/*  These now reference the theme CSS variables (React inline styles accept
+    var(--x)), so every form page built on this kit flips with light/dark
+    instead of staying hardcoded light. Light-theme values are unchanged. */
 export const C = {
+  /*  Accent colours stay as HEX: they are read on both light and dark
+      backgrounds, and several places append an alpha suffix (e.g. `${C.purple}0f`,
+      `${C.accentL}80`) which is only valid on a hex string, not a var(). */
   primary:  '#1e3a5f',
   primaryL: '#2d5282',
   accent:   '#0ea5e9',
@@ -58,18 +65,19 @@ export const C = {
   warning:  '#d97706',
   danger:   '#dc2626',
   purple:   '#7c3aed',
-  surface:  '#f1f5f9',
-  border:   '#e2e8f0',
-  text1:    '#0f172a',
-  text2:    '#475569',
-  text3:    '#94a3b8',
+  /*  Structural tokens follow the theme so surfaces/text flip light<->dark. */
+  surface:  'var(--slate-100)',
+  border:   'var(--slate-200)',
+  text1:    'var(--text-head)',
+  text2:    'var(--text-body)',
+  text3:    'var(--slate-400)',
 };
 
 /* ── Shared inline styles ────────────────────────────────────────── */
 export const page = { background: C.surface, minHeight:'100%', paddingBottom:0 };
 
 export const card = {
-  background:'#fff',
+  background:'var(--white)',
   borderRadius:16,
   margin:'12px 16px',
   boxShadow:'0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.04)',
@@ -93,7 +101,7 @@ export const fieldWrap  = { padding:'12px 16px', borderBottom:`1px solid ${C.sur
 /*  Labels were 10px grey uppercase and hard to read across a wide two-column
     form. Now dark navy, heavier and slightly larger — still uppercase, so
     nothing about the layout shifts.                                         */
-export const fieldLabel = { fontSize:11, fontWeight:800, color:'#0f2c3f', textTransform:'uppercase', letterSpacing:'.045em', marginBottom:7, display:'block', lineHeight:1.45 };
+export const fieldLabel = { fontSize:11, fontWeight:800, color:'var(--text-head)', textTransform:'uppercase', letterSpacing:'.045em', marginBottom:7, display:'block', lineHeight:1.45 };
 export const reqStar    = { color:C.accent, marginLeft:2 };
 export const errMsg     = { fontSize:11, color:C.danger, marginTop:5, display:'flex', alignItems:'center', gap:4 };
 
@@ -101,13 +109,13 @@ export const inputBase = {
   width:'100%', height:44, padding:'0 13px',
   border:`1.5px solid ${C.border}`, borderRadius:10,
   fontSize:13, fontFamily:'inherit', color:C.text1,
-  outline:'none', background:'#fff',
+  outline:'none', background:'var(--white)',
   transition:'border .15s, box-shadow .15s', boxSizing:'border-box',
 };
 export const inputFocus = { border:`1.5px solid ${C.accent}`, boxShadow:`0 0 0 3px ${C.accentL}80` };
 /*  Marks the field without shouting — a soft red rather than the full-strength
     danger colour, since dozens can be on screen at once.                    */
-export const inputErr   = { border:'1.5px solid #fca5a5', background:'#fffafa' };
+export const inputErr   = { border:'1.5px solid #fca5a5', background:'var(--rose-l)' };
 export const selectBase = {
   ...inputBase,
   paddingRight:36,
@@ -438,13 +446,13 @@ export function SearchableSelect({
             position:'fixed', left:rect.left, width:rect.width,
             ...(rect.top !== undefined ? { top:rect.top } : { bottom:rect.bottom }),
             zIndex: 9999,
-            background:'#fff', border:`1px solid ${C.border}`, borderRadius:12,
+            background:'var(--white)', border:`1px solid ${C.border}`, borderRadius:12,
             boxShadow:'0 12px 34px rgba(15,23,42,.18)', overflow:'hidden',
             display:'flex', flexDirection:'column',
             maxHeight: Math.max(160, rect.maxH),
           }}>
 
-          <div style={{ padding:8, borderBottom:`1px solid ${C.surface}`, background:'#fff' }}>
+          <div style={{ padding:8, borderBottom:`1px solid ${C.surface}`, background:'var(--white)' }}>
             <input
               ref={inputRef} value={q} onChange={e => setQ(e.target.value)} onKeyDown={onKey}
               placeholder={searchPlaceholder}
@@ -480,7 +488,7 @@ export function SearchableSelect({
                     style={{
                       padding:'9px 13px', cursor:'pointer', fontSize:13,
                       display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
-                      background: isActive ? C.accentL : '#fff',
+                      background: isActive ? C.accentL : 'var(--white)',
                       color: isChosen ? C.primary : C.text1,
                       fontWeight: isChosen ? 700 : 500,
                     }}>
@@ -677,8 +685,13 @@ export function DateField({ value, onChange, hasError }) {
 }
 
 export function Card({ icon, title, color=C.primary, tint, children }) {
+  const { resolved } = useTheme();
+  /*  The per-section tints are light pastels; in dark mode they'd turn the card
+      light and hide the (now light) labels. Skip them and keep the dark card
+      background — the coloured header still tells sections apart. */
+  const tintStyle = (tint && resolved !== 'dark') ? { background: tint } : {};
   return (
-    <div style={{ ...card, ...(tint ? { background: tint } : {}) }}>
+    <div style={{ ...card, ...tintStyle }}>
       <div style={cardHeader(color)}>
         <div style={cardIconBg(color)}>{icon}</div>
         <span style={{ fontSize:12, fontWeight:700, color:C.text1, letterSpacing:'.01em' }}>{title}</span>
@@ -700,13 +713,13 @@ export function Footer({
 }) {
   const hasMiddle = Boolean(onMiddle && middleLabel);
   return (
-    <div style={{ position:'sticky', bottom:0, background:'#fff', borderTop:`1px solid ${C.border}`, padding:'10px 18px', display:'flex', gap:10, zIndex:40, boxShadow:'0 -4px 20px rgba(0,0,0,.07)' }}>
-      <button onClick={onSecondary} style={{ flex:1, height:48, borderRadius:12, border:`1.5px solid ${C.border}`, background:'#fff', fontSize:13, fontWeight:700, color:C.text2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+    <div style={{ position:'sticky', bottom:0, background:'var(--white)', borderTop:`1px solid ${C.border}`, padding:'10px 18px', display:'flex', gap:10, zIndex:40, boxShadow:'0 -4px 20px rgba(0,0,0,.07)' }}>
+      <button onClick={onSecondary} style={{ flex:1, height:48, borderRadius:12, border:`1.5px solid ${C.border}`, background:'var(--white)', fontSize:13, fontWeight:700, color:C.text2, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
         {secondaryLabel}
       </button>
 
       {hasMiddle && (
-        <button onClick={onMiddle} disabled={middleDisabled} style={{ flex:1.4, height:48, borderRadius:12, border:`1.5px solid ${middleDisabled?C.border:middleColor}`, background:'#fff', fontSize:13, fontWeight:700, color: middleDisabled?C.text3:middleColor, cursor: middleDisabled?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all .2s' }}>
+        <button onClick={onMiddle} disabled={middleDisabled} style={{ flex:1.4, height:48, borderRadius:12, border:`1.5px solid ${middleDisabled?C.border:middleColor}`, background:'var(--white)', fontSize:13, fontWeight:700, color: middleDisabled?C.text3:middleColor, cursor: middleDisabled?'not-allowed':'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6, transition:'all .2s' }}>
           {middleLabel}
         </button>
       )}

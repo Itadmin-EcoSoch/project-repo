@@ -184,12 +184,12 @@ export default function FileField({ value, onChange, column, projectId, hasError
           border: `2px dashed ${hasError ? C.danger : drag ? C.accent : filled ? C.success : C.border}`,
           borderRadius: 10, padding: '12px 14px', cursor: busy ? 'wait' : 'pointer',
           display: 'flex', alignItems: 'center', gap: 12,
-          background: drag ? `${C.accent}0d` : filled ? '#f0fdf4' : '#fafbfc',
+          background: drag ? `${C.accent}0d` : filled ? 'var(--brand-l)' : 'var(--white)',
           transition: 'all .15s',
         }}>
         <div style={{ width: 34, height: 34, borderRadius: 9, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: filled ? '#dcfce7' : C.surface, fontSize: 15 }}>
+                      background: filled ? 'var(--brand-l)' : C.surface, fontSize: 15 }}>
           {busy ? '⏳' : filled ? '✓' : '📎'}
         </div>
 

@@ -129,7 +129,7 @@ async function sendMail({ to, cc, subject, html, text, replyTo, from, senderName
                          inReplyTo, references, headers }) {
 
   if (String(process.env.MAIL_TRANSPORT || 'appsscript').toLowerCase() === 'appsscript') {
-    const db = require('../db/sheets');
+    const db = require('../db');
     const list = (Array.isArray(to) ? to : String(to || '').split(','))
       .map(s => String(s).trim()).filter(Boolean);
     if (!list.length) throw new Error('No recipients — nothing to send to.');

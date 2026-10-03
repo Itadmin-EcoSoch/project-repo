@@ -78,7 +78,7 @@ export default function AllProjects() {
   /*  THE FIX: filter and search are read from the URL, not from useState, so
       they survive unmount. Everything below is unchanged apart from reading
       `filter` here instead of from state.                                  */
-  const filter = params.get('status') || 'All';
+  const filter = params.get('status') || 'Active';
   const urlQ   = params.get('q') || '';
 
   const [projects, setProjects] = useState([]);

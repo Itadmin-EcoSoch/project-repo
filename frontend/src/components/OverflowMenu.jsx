@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api, { refreshFromSheet } from '../lib/api';
+import api from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
 /** Work out what record the current URL is showing. */
@@ -81,14 +81,6 @@ export default function OverflowMenu() {
     setOpen(false);
   }
 
-  async function reload() {
-    setBusy(true);
-    await refreshFromSheet();
-    setBusy(false);
-    setOpen(false);
-    window.location.reload();
-  }
-
   async function remove() {
     const labels = {
       project : ['project', `/api/projects/${encodeURIComponent(ctx.id)}`, '/projects'],
@@ -135,7 +127,6 @@ export default function OverflowMenu() {
   }
 
   items.push({ label: 'Copy link', icon: '🔗', onClick: copyLink });
-  items.push({ label: busy ? 'Reloading…' : 'Reload from sheet', icon: '🔄', onClick: reload });
 
   /*  Deletion is intentionally not offered anywhere in the UI — records are
       only ever added or updated from the front end, never removed. */

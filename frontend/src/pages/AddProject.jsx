@@ -482,7 +482,7 @@ export default function AddProject() {
   return (
     <div style={page}>
 
-      <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`,
+      <div style={{ background: 'var(--white)', borderBottom: `1px solid ${C.border}`,
                     padding: '13px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: C.text1 }}>Add Project</div>
         <div style={{ fontSize: 11, color: C.text3, marginTop: 2 }}>
@@ -494,9 +494,9 @@ export default function AddProject() {
 
       {/* client card — sticky, so you always know who you are adding for */}
       <div style={{ position: 'sticky', top: 0, zIndex: 40, padding: '8px 16px',
-                    background: 'rgba(241,245,249,.92)',
+                    background: 'var(--slate-100)',
                     backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
-        <div style={{ padding: '10px 14px', background: '#fff', borderRadius: 14,
+        <div style={{ padding: '10px 14px', background: 'var(--white)', borderRadius: 14,
                       border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center',
                       gap: 12, boxShadow: '0 4px 14px rgba(15,23,42,.10)' }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%',

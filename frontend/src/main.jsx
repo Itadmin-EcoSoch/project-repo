@@ -11,7 +11,8 @@ import {
 import { Toaster } from "react-hot-toast";
 
 import Layout from "./components/Layout";
-import { ThemeProvider } from "./hooks/useTheme";
+import { ThemeProvider, useTheme as useAppTheme } from "./hooks/useTheme";
+import { createTheme, ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Login from "./pages/Login";
 import RequirePermission from "./components/RequirePermission";
@@ -84,9 +85,27 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/*  Material-UI pages (Users, Dropdown lists, Add/Edit User) have their own
+    theming system. Without a MUI theme they always render light. This bridge
+    builds a MUI theme whose mode follows the app's resolved light/dark setting
+    so those pages match the rest of the app. */
+function MuiBridge({ children }) {
+  const { resolved } = useAppTheme();
+  const theme = React.useMemo(() => createTheme({
+    palette: {
+      mode: resolved === "dark" ? "dark" : "light",
+      ...(resolved === "dark"
+        ? { background: { default: "#0B1220", paper: "#101827" } }
+        : {}),
+    },
+  }), [resolved]);
+  return <MuiThemeProvider theme={theme}>{children}</MuiThemeProvider>;
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ThemeProvider>
+    <MuiBridge>
     <BrowserRouter>
     <AuthProvider>
 
@@ -314,6 +333,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
     </AuthProvider>
     </BrowserRouter>
+    </MuiBridge>
     </ThemeProvider>
   </React.StrictMode>
 );

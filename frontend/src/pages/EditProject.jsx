@@ -115,6 +115,15 @@ export default function EditProject() {
                 Keying off the VALUE rather than the control type fixes it for
                 any future radio or select put on a boolean column.        */
             typeof v === 'boolean' ? toYesNo(v) :
+            /*  SUPABASE STORES EVERYTHING AS TEXT, so a boolean column like
+                AMC_Provided arrives as the STRING "true"/"false" — not a real
+                boolean — and the branch above misses it. The radio then
+                compares its ['Yes','No'] options against "false", matches
+                neither, and NEITHER button lights up. Normalise any Yes/No
+                radio through toYesNo, which already understands "true"/"false". */
+            (Array.isArray(f.options) && f.options.length === 2 &&
+              f.options.includes('Yes') && f.options.includes('No'))
+              ? toYesNo(v) :
                         /*  The inverse of the /100 in toProjectPayload. Margin is stored
                 as a fraction because the column is formatted 0.00% and Sheets
                 applies that to the RAW value. The box asks for "Margin%", so
@@ -122,7 +131,7 @@ export default function EditProject() {
                 again and turn 12% into 0.12%.                             */
             (f.type === 'percent' && v !== '' && v !== null && v !== undefined
               && !Number.isNaN(Number(v)))
-              ? String(Math.round(Number(v) * 1000) / 10) :
+              ? String(Math.round(Number(v) * 10) / 10) :
             ((v === undefined || v === null) ? '' : v);
           /*  The original filename, saved alongside the Drive path — see
               fileNameKey in lib/projectFields.js. Older rows saved before
@@ -163,12 +172,14 @@ export default function EditProject() {
             amcSeed.inspYears  = years  === '' ? '' : String(years);
             amcSeed.inspStart  = toDateInput(start);
             if (file) amcSeed.inspFile = file;
+            amcSeed._amcLockedInsp = true;   // an Inspection contract exists -> lock its terms
           }
           if (type.includes('clean')) {
             amcSeed.cleanVisits = visits === '' ? '' : String(visits);
             amcSeed.cleanYears  = years  === '' ? '' : String(years);
             amcSeed.cleanStart  = toDateInput(start);
             if (file) amcSeed.cleanFile = file;
+            amcSeed._amcLockedClean = true;  // a Cleaning contract exists -> lock its terms
           }
         }
 
@@ -411,10 +422,20 @@ export default function EditProject() {
         try {
           const r = await api.post('/api/amc-setup/create', amc);
           const d = r?.data ?? r;
+          /*  AMC term edits (visits/year, years, start date, payment terms) live
+              on AMC_Contracts, not the Projects row, so they are not in the PATCH
+              diff. Merge them in so the "Updated Order" email lists them too.   */
+          const amcChanges = Array.isArray(d?.changes) ? d.changes : [];
+          if (amcChanges.length) {
+            changes = [...changes, ...amcChanges];
+            setSavedChanges(changes);
+          }
           const n = d?.contracts?.length || 0;
-          toast.success(n
-            ? `AMC schedule created · ${d.total_visits || 0} visit${(d.total_visits || 0) === 1 ? '' : 's'}`
-            : 'AMC already set up — no duplicate created');
+          toast.success(amcChanges.length
+            ? `AMC updated · ${amcChanges.length} term${amcChanges.length > 1 ? 's' : ''} changed`
+            : (n
+                ? `AMC schedule created · ${d.total_visits || 0} visit${(d.total_visits || 0) === 1 ? '' : 's'}`
+                : 'AMC already set up — no changes'));
         } catch (e) {
           toast.error(e.message || 'Could not create the AMC schedule');
         }
@@ -448,7 +469,7 @@ export default function EditProject() {
 
   return (
     <div style={page}>
-      <div style={{ background: '#fff', borderBottom: `1px solid ${C.border}`,
+      <div style={{ background: 'var(--white)', borderBottom: `1px solid ${C.border}`,
                     padding: '13px 18px', boxShadow: '0 1px 4px rgba(0,0,0,.04)' }}>
         <div style={{ fontSize: 14, fontWeight: 800, color: C.text1 }}>Edit Project</div>
         <div style={{ fontSize: 11, color: C.text3, marginTop: 2, whiteSpace: 'nowrap',

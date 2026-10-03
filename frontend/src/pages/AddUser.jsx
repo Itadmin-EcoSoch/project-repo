@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
     call from this page came back 401 and the screen rendered empty. The
     shared client attaches the signed-in token and unwraps res.data.        */
 import api from "../lib/api";
+import { DateField } from "./formKit";
 
 import {
   Box,
@@ -201,11 +202,12 @@ export default function AddUser() {
             </Grid>
 
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth type="date" label="Start Date" name="start_date"
-                value={form.start_date} onChange={e => set("start_date", e.target.value)}
-                InputLabelProps={{ shrink: true }}
-              />
+              <Box>
+                <Typography variant="caption" sx={{ display: "block", mb: 0.5, color: "text.secondary" }}>
+                  Start Date
+                </Typography>
+                <DateField value={form.start_date} onChange={v => set("start_date", v)} />
+              </Box>
             </Grid>
 
             <Grid item xs={12}>

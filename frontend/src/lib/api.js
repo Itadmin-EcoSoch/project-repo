@@ -3,7 +3,7 @@ import axios from 'axios';
 /*  Google Sheets reads are slower than Postgres — a cold first read of the
     Projects tab can take 8-15s, so the timeout is generous.               */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000',
+  baseURL: import.meta.env.VITE_API_URL_PROJECT_REPO || import.meta.env.VITE_API_URL || 'http://localhost:4000',
 
   /*  MUST NOT BE SHORTER THAN SHEETS_TIMEOUT IN backend/.env (90000).
 

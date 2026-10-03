@@ -19,7 +19,7 @@
     ============================================================================  */
 
 require('dotenv').config();
-const db = require('./db/sheets');
+const db = require('./db');
 const { decide, isPaid, isCancelled, SOURCE, DEFAULT_TO, PROMOTE_TO, GRACE_DAYS }
   = require('./lib/paymentPromotion');
 

@@ -32,12 +32,47 @@ const TABLE = {
   tickets:      'Tickets',
   users:        'Users',
   launcher:     'Launcher',
+  dropdown_options: 'dropdowns',
 };
 
 /* Sheet columns that exist in the tables but aren't in the app field-map. */
 const EXTRA = {
+  tickets: [
+    /*  Columns the Tickets tab carries but lib/mapping.js never mapped, so
+        clean() dropped them on backfill/write (charge-applicable flags and
+        amounts, ticket expenses, the ticket files, and the updated-by stamp). */
+    'Service_Charge_Applicable', 'Service_Charge',
+    'Material_Charge_Applicable', 'Ticket_Expenses',
+    'Ticket_Files', 'Last_Updated_By',
+  ],
+  amc_payments: [
+    /*  The payment receipt file column exists in the AMC_Payment_Schedule tab
+        but was never mapped, so it was dropped on backfill/write. */
+    'Payment_Receipt',
+  ],
+  amc_contracts: [
+    /*  Columns the AMC_Contracts tab carries but lib/mapping.js never mapped,
+        so clean() dropped them on backfill/write and they were blank on
+        Supabase (payment schedule terms, the tasks/payments-done flags and
+        the annual percent increase). Add them so they round-trip.          */
+    'Payment_Available', 'Percent_Increase', 'Payment_Frequency',
+    'Payment_Period_in_Years', 'Payment_Start_Date', 'Payment_End_Date',
+    'AMC_Tasks_Done', 'Payments_Done',
+  ],
   clients:  ['Client_GMap_Location'],
-  projects: ['GMap_Link', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name', 'Bill_File_Name', 'PO_File_Name'],
+  projects: [
+    'GMap_Link', 'Client_Id', 'Quote_Sheet_Name', 'Proposal_Name', 'Files_Name',
+    'Bill_File_Name', 'PO_File_Name',
+    /*  Same unmapped Projects columns added to db/supabase.js EXTRA — kept in
+        sync here so the forward mirror (sheet -> Supabase replica) carries them
+        too, rather than silently dropping them.                            */
+    'Bill_Available', 'PO_Available', 'PO_Bill_Name_Same', 'Billing_Quotation_Same',
+    'GST_Available', 'Quotation_Name',
+    'Referral', 'Referral_Amount', 'Referrer_Name',
+    'Retention', 'Retention_Amount', 'Retention_Period',
+    'Monitoring_Frequency', 'TSV_Required', 'Capacity_Finalised', 'Elevated_drawings',
+    'New_Order_Sent_At', 'New_Order_Sent_By', 'Internal_Id',
+  ],
 };
 
 /* Per-table: id column + the set of allowed columns (kept in sync with mapping). */
@@ -58,11 +93,58 @@ function headers() {
 }
 
 /** Keep only real table columns, and never send an empty/idless row. */
+const NUM_COLS = {
+  amc_payments: new Set(['Payment_Amount']),
+  tickets: new Set([
+    'Service_Charge', 'Material_Charge', 'Total_Charge', 'Ticket_Warranty_Period',
+  ]),
+  amc_contracts: new Set([
+    'AMC_Frequency', 'AMC_Period_in_Years', 'Payment_Amount', 'Tasks_Count',
+    'Payments_Count', 'Percent_Increase', 'Payment_Frequency',
+    'Payment_Period_in_Years', 'AMC_Tasks_Done', 'Payments_Done',
+  ]),
+  projects: new Set([
+    'Project_Size', 'Module_Wattage', 'Module_No', 'Order_Value', 'Margin',
+    'Warranty_Period', 'Referral_Amount', 'Retention_Amount',
+    // Retention_Period stays TEXT — it holds values like 'NA', '1 year',
+    // 'As per the tariff Rate', not just numbers.
+  ]),
+};
+const DATE_COLS = {
+  amc_payments: new Set(['Payment_Due_Date']),
+  amc_tasks: new Set(['AMC_Due_Date']),
+  tickets: new Set([
+    'Ticket_Start_Date', 'Ticket_Due_Date',
+    'Ticket_Warranty_Start_Date', 'Ticket_Warranty_End_Date',
+    'Created_Date', 'Last_Updated_Date',
+  ]),
+  amc_contracts: new Set([
+    'AMC_Start_Date', 'AMC_End_Date', 'Payment_Start_Date', 'Payment_End_Date',
+  ]),
+  projects: new Set([
+    'Commissioned_Date', 'Warranty_Start_Date', 'Warranty_End_Date',
+    'Exp_Inst_Date', 'Exp_Commsn_Date', 'Created_Date', 'Last_Updated_Date',
+    'New_Order_Sent_At',
+  ]),
+};
 function clean(key, row) {
   const allow = ALLOWED[key];
+  const num = NUM_COLS[key]; const dat = DATE_COLS[key];
   const out = {};
   for (const [k, v] of Object.entries(row || {})) {
-    if (allow.has(k)) out[k] = (v === undefined || v === null) ? null : String(v);
+    if (!allow.has(k)) continue;
+    if (v === undefined || v === null) { out[k] = null; continue; }
+    if (num && num.has(k)) {
+      const sv = String(v).replace(/,/g, '').trim();
+      out[k] = sv === '' ? null : sv;
+      continue;
+    }
+    if (dat && dat.has(k)) {
+      const sv = String(v).trim();
+      out[k] = sv === '' ? null : (/^\d{4}-\d{2}-\d{2}/.test(sv) ? sv.slice(0, 10) : sv);
+      continue;
+    }
+    out[k] = String(v);
   }
   out.synced_at = new Date().toISOString();
   return out;

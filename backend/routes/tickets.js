@@ -30,7 +30,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const { MAP, toApp, toSheet } = require('../lib/mapping');
 const { applyWarranty, TICKET_COLS } = require('../lib/warranty');
 const { newTicketId } = require('../lib/uniqueId');

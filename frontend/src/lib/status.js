@@ -143,10 +143,10 @@ export function buildStatusChips(projects = []) {
   });
 
   return [
-    { key: 'All', label: 'All', count: projects.length, dot: '#059669', pin: '#00875A' },
     ...keys.map(k => ({
       key: k, label: statusLabel(k), count: counts.get(k),
       dot: statusDot(k), pin: statusPin(k),
     })),
+    { key: 'All', label: 'All', count: projects.length, dot: '#059669', pin: '#00875A' },
   ];
 }

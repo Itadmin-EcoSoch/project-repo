@@ -923,14 +923,20 @@ export const PROJECT_SECTIONS = [
             Inverter Brand or Project Type does, so it stays open to any
             user rather than routed through the Admin screen.              */
         allowNew: true, keepCustom: true, addLabel: '＋ Enter a different number',
+        readOnlyIf: f => !!f._amcLockedInsp,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspYears', label: 'Inspection — for how many years?',
         type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
+        readOnlyIf: f => !!f._amcLockedInsp,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       { name: 'inspStart', label: 'Inspection start date', type: 'date',
         transient: true, width: 'quarter',
+        readOnlyIf: f => !!f._amcLockedInsp,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsInspection(f), showIf: f => wantsInspection(f) },
 
       /*  Read-only preview, kept in step with inspStart/inspVisits/inspYears
@@ -972,14 +978,20 @@ export const PROJECT_SECTIONS = [
         type: 'select', options: AMC_VISITS_PER_YEAR.map(String), transient: true,
         width: 'quarter',
         allowNew: true, keepCustom: true, addLabel: '＋ Enter a different number',
+        readOnlyIf: f => !!f._amcLockedClean,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanYears', label: 'Cleaning — for how many years?',
         type: 'number', transient: true, width: 'quarter', suffix: 'yrs', max: 25,
+        readOnlyIf: f => !!f._amcLockedClean,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanStart', label: 'Cleaning start date', type: 'date',
         transient: true, width: 'quarter',
+        readOnlyIf: f => !!f._amcLockedClean,
+        readOnlyNote: 'Set when the project was created — locked',
         required: f => wantsCleaning(f), showIf: f => wantsCleaning(f) },
 
       { name: 'cleanEnd', label: 'Cleaning End Date', type: 'readonly',
@@ -1272,7 +1284,9 @@ export function toProjectPayload(form, extra = {}) {
 
           Divide on the way out, and only here — the form keeps showing the
           human number the user typed.                                      */
-      if (f.type === 'percent' && v !== '') v = (Math.round(Number(v) * 10) / 10) / 100;
+      /*  Margin is stored as a WHOLE percent now (12 = 12%, 54.9 = 54.9%),
+          not a fraction. Keep one decimal; do not divide by 100.          */
+      if (f.type === 'percent' && v !== '') v = Math.round(Number(v) * 10) / 10;
     }
     out[f.sheet] = v ?? '';
 

@@ -32,7 +32,7 @@
     ============================================================================  */
 
 require('dotenv').config();
-const db = require('./db/sheets');
+const db = require('./db');
 const { PROFILES, isValidId } = require('./lib/uniqueId');
 
 const show = (label, items, fmt = String) => {

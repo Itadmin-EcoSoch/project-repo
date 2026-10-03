@@ -15,7 +15,7 @@
 const express = require('express');
 const router  = express.Router();
 
-const db = require('../db/sheets');
+const db = require('../db');
 const { buildNewOrderEmail, buildProjectUpdateEmail, FILE_COLUMNS,
         PROJECT_ROWS, SENDER_NAMES } = require('../lib/newOrderTemplate');
 const { sendMail: smtpSendMail, verifyMailer, checkFromAddress } = require('../utils/mailer');

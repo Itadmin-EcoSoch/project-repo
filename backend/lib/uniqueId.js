@@ -74,7 +74,7 @@
     ============================================================================  */
 
 const crypto = require('crypto');
-const db     = require('../db/sheets');
+const db     = require('../db');
 
 const DIGITS      = '0123456789';
 const UPPER       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';

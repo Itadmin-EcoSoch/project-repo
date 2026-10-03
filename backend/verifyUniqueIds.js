@@ -19,7 +19,7 @@
 require('dotenv').config();
 const fs   = require('fs');
 const path = require('path');
-const db   = require('./db/sheets');
+const db   = require('./db');
 
 let failures = 0;
 const ok   = m => console.log(`  PASS   ${m}`);

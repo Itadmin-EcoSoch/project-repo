@@ -21,7 +21,7 @@ import {
   createTicket, TICKET_TYPES, TICKET_PRIORITIES, TICKET_STATUSES,
 } from '../lib/solarcare';
 import {
-  page, Card, Field, SInput, SSelect, STextarea, Footer, C, Row } from './formKit';
+  page, Card, Field, SInput, SSelect, STextarea, Footer, C, Row , DateField } from './formKit';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -190,19 +190,26 @@ export default function AddTicket() {
 
           <Row cols={2}>
             <Field label="Raised on">
-              <SInput type="date" value={f.start_date} onChange={e => set('start_date', e.target.value)} />
+              <DateField value={f.start_date} onChange={v => set('start_date', v)} />
             </Field>
 
             <Field label="Target close date" error={errors.due_date}>
-              <SInput type="date" value={f.due_date} onChange={e => set('due_date', e.target.value)}
-                      hasError={!!errors.due_date} />
+              <DateField value={f.due_date} onChange={v => set('due_date', v)} hasError={!!errors.due_date} />
             </Field>
           </Row>
 
           <Field label="Chargeable amount">
             <SInput type="number" value={f.total_charge}
-                    onChange={e => set('total_charge', e.target.value)}
-                    placeholder="0" suffix="₹" />
+                    onChange={e => {
+                      const raw = e.target.value;
+                      if (raw === '') return set('total_charge', '');
+                      let n = Number(raw);
+                      if (Number.isNaN(n)) return;          // ignore non-numeric input
+                      if (n < 0) n = 0;                     // no negatives
+                      if (n > 1000000) n = 1000000;         // cap at 10 lakhs
+                      set('total_charge', String(n));
+                    }}
+                    step="1" placeholder="0" suffix="₹" />
           </Field>
         </Card>
 
