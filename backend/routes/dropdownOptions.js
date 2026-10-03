@@ -92,8 +92,11 @@ const asOption = r => ({
 /* GET /api/dropdown-options?field_key=Sales_Lead&active=1 */
 router.get('/', async (req, res, next) => {
   try {
+    /*  Sort by Sort_Order so the FORM dropdowns render in the order set on the
+        Manage Dropdown Lists screen. A global Sort_Order sort keeps each field's
+        values in their 0,1,2... order once grouped by field_key on the client. */
     const { data } = await db.list('dropdown_options', {
-      sort: 'Field_Key', order: 'asc',
+      sort: 'Sort_Order', order: 'asc',
     }, { fresh: req.query.fresh === '1' });
 
     let rows = data.filter(r => r.Option_Id).map(asOption);
