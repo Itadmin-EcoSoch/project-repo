@@ -94,6 +94,7 @@ function headers() {
 
 /** Keep only real table columns, and never send an empty/idless row. */
 const NUM_COLS = {
+  dropdown_options: new Set(['Sort_Order']),
   amc_payments: new Set(['Payment_Amount']),
   tickets: new Set([
     'Service_Charge', 'Material_Charge', 'Total_Charge', 'Ticket_Warranty_Period',

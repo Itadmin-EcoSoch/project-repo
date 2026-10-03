@@ -26,7 +26,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import { getDropdownOptions, addDropdownOption, deleteDropdownOption } from '../lib/api';
+import { getDropdownOptions, addDropdownOption, deleteDropdownOption, reorderDropdownOptions } from '../lib/api';
 import {
   PROJECT_TYPES, REGIONS, SALES_LEADS, INVERTER_BRANDS, INVERTER_TYPES,
   MODULE_BRANDS, ROOF_MATERIALS, STRUCTURE_TYPES, MONITORING_FREQ,
@@ -42,6 +42,8 @@ import {
   Divider, Stack, Checkbox,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 /*  Every admin-manageable list: its FIELD_KEY (must match the optionsKey used
@@ -117,9 +119,28 @@ export default function AdminDropdowns() {
   const addedRows = useMemo(
     () => rows
       .filter(r => r.field_key === active.key && r.active !== false)
-      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))),
+      .sort((a, b) => {
+        const ao = a.sort_order == null ? Infinity : a.sort_order;
+        const bo = b.sort_order == null ? Infinity : b.sort_order;
+        if (ao !== bo) return ao - bo;
+        return String(a.value || '').localeCompare(String(b.value || ''));
+      }),
     [rows, active.key]
   );
+
+  /*  Reorder a value up (dir -1) or down (dir +1) within the active list.
+      Optimistic: renumber locally, then persist the new order.            */
+  async function move(id, dir) {
+    const ids = addedRows.map(r => r.id);
+    const i = ids.indexOf(id), j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    const pos = Object.fromEntries(ids.map((x, k) => [x, k]));
+    setRows(prev => prev.map(r =>
+      (r.field_key === active.key && pos[r.id] !== undefined) ? { ...r, sort_order: pos[r.id] } : r));
+    try { await reorderDropdownOptions(active.key, ids); }
+    catch (e) { toast.error(e.message || 'Could not save the new order'); load(); }
+  }
 
   async function handleAdd() {
     const value = newValue.trim();
@@ -269,12 +290,24 @@ export default function AdminDropdowns() {
                   </Typography>
                 ) : (
                   <List dense disablePadding>
-                    {addedRows.map(r => (
+                    {addedRows.map((r, i) => (
                       <ListItem key={r.id} disablePadding
                         secondaryAction={
-                          <IconButton edge="end" color="error" onClick={() => handleDelete(r)} title="Remove">
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          <>
+                            <IconButton edge="end" size="small" title="Move up"
+                                        disabled={i === 0}
+                                        onClick={() => move(r.id, -1)}>
+                              <ArrowUpwardIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton edge="end" size="small" title="Move down"
+                                        disabled={i === addedRows.length - 1}
+                                        onClick={() => move(r.id, +1)}>
+                              <ArrowDownwardIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton edge="end" color="error" onClick={() => handleDelete(r)} title="Remove">
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </>
                         }>
                         <Checkbox edge="start" size="small"
                                   checked={selectedIds.includes(r.id)}
