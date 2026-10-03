@@ -237,7 +237,7 @@ export default function FileField({ value, onChange, column, projectId, hasError
           <div style={{ fontSize: 10, color: C.text3, marginTop: 2 }}>
             {busy
               ? 'Large files can take a couple of minutes — leave this page open.'
-              : `PDF, images, Excel, Word · up to ${limitMB} MB`}
+              : `PDF, images, Excel, Word, ZIP${column === 'Files' ? ', MP4' : ''} · up to ${limitMB} MB`}
           </div>
         </div>
 
@@ -259,7 +259,7 @@ export default function FileField({ value, onChange, column, projectId, hasError
       </div>
 
       <input ref={ref} type="file" style={{ display: 'none' }}
-             accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,.xls,.xlsx,.xlsm,.csv,.doc,.docx,.ppt,.pptx,.txt"
+             accept={".pdf,.jpg,.jpeg,.png,.webp,.heic,.gif,.xls,.xlsx,.xlsm,.csv,.doc,.docx,.ppt,.pptx,.txt,.zip" + (column === 'Files' ? ',.mp4' : '')}
              onChange={e => handleFile(e.target.files?.[0])} />
 
       {error && <div style={{ fontSize: 11, color: C.danger, marginTop: 5 }}>{error}</div>}

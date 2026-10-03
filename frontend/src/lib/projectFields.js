@@ -1025,7 +1025,7 @@ export const PROJECT_SECTIONS = [
       /*  maxSizeMB is enforced inside FileField itself — an oversized file is
           rejected before it is ever uploaded, not after.                  */
       { name: 'siteFiles', label: 'Other Files', type: 'file',
-        sheet: 'Files', required: true, width: 'third', maxSizeMB: 2 },
+        sheet: 'Files', required: true, width: 'third', maxSizeMB: 20 },
       { name: 'expInstDate', label: 'Expected Installation Date', type: 'date',
         sheet: 'Exp_Inst_Date', required: true },
       { name: 'expCommsnDate', label: 'Expected Commissioning Date', type: 'date',
