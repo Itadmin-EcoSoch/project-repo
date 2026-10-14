@@ -62,6 +62,7 @@ const projects = {
   order_value       : 'Order_Value',
   ecosoch_margin_pct: 'Margin',
   proposal_model    : 'Proposal_Model',
+  flow_type         : 'Flow_Type',
   commitment        : 'Client_Committment',
   obstacles         : 'Obstacle_Removal',
   obstacle_scope    : 'Obstacle_Scope',

@@ -194,6 +194,11 @@ export const INVERTER_TYPES = [
 
 export const PROPOSAL_MODELS = ['Essential', 'Premium', 'NA (only for C&I projects)'];
 
+/*  Flow Type — FIXED options (deliberately NOT admin-editable via optionsKey).
+    "Small systems (No TSV or TSVR required)" carries logic: the Design Tracker
+    automation skips these, so the exact string must never drift.            */
+export const FLOW_TYPES = ['Standard', 'Small systems (No TSV or TSVR required)'];
+
 export const MODULE_BRANDS = [
   'Waaree', 'Adani', 'Premier', 'Vikram Solar', 'Novasys',
   'Sunpower', 'NA', 'Axitec', 'Trina',
@@ -485,7 +490,15 @@ export const PROJECT_SECTIONS = [
         default: '', showIf: () => false },
 
       { name: 'projectName', label: 'Project Name', type: 'readonly', sheet: 'Project_Name',
+        width: 'half',
         help: 'Built automatically from client, tags, size and inverter type.' },
+
+      /*  Flow Type — sits to the RIGHT of Project Name. Required.
+          "Small systems (No TSV or TSVR required)" => the Design Tracker
+          automation does NOT create a Tracker row for the project.          */
+      { name: 'flowType', label: 'Flow Type', type: 'select', sheet: 'Flow_Type',
+        options: FLOW_TYPES, required: true, width: 'half', default: 'Standard',
+        help: 'Small systems (No TSV or TSVR required) are not added to the Design Tracker.' },
 
       { name: 'dealId', label: 'Deal ID from Zoho', type: 'text', sheet: 'Deal_ID',
   required: true,
