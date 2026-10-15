@@ -17,6 +17,21 @@ import { Card, Field, SInput, SSelect, STextarea, C, SelectOrType, indianComma, 
 import { maxLengthFor, TEXTAREA_MAX } from '../lib/fieldLimits';
 import FileField from './FileField';
 
+/*  A small info icon shown beside a field label; reveals `text` on hover/focus.
+    Driven by a field's optional `tooltip` property in projectFields.js.      */
+function InfoTip({ text }) {
+  return (
+    <span className="pf-info" tabIndex={0} role="img" aria-label={text}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" /><line x1="12" y1="11" x2="12" y2="16" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
+      <span className="pf-tip">{text}</span>
+    </span>
+  );
+}
+
 /*  Yes / No as two buttons, the way AppSheet shows them.
 
     They used to be welded together — gap 0, one shared outline, a hairline
@@ -373,6 +388,21 @@ const GRID_CSS = `
   .pf-w-third  { grid-column: span 4; }
   .pf-w-quarter{ grid-column: span 3; }
 }
+/*  Label info icon + hover tooltip (used by fields that set a tooltip prop). */
+.pf-info { position: relative; display: inline-flex; align-items: center; margin-left: 5px; vertical-align: middle; cursor: help; color: #9aa4ae; outline: none; }
+.pf-info > svg { width: 13px; height: 13px; display: block; }
+.pf-info:hover, .pf-info:focus-visible { color: #0b8457; }
+.pf-info > .pf-tip {
+  visibility: hidden; opacity: 0; transition: opacity .12s ease;
+  position: absolute; left: 0; top: calc(100% + 7px); z-index: 60;
+  width: max-content; max-width: 300px;
+  background: #1f2937; color: #fff; text-align: left;
+  padding: 8px 10px; border-radius: 8px;
+  font-size: 11.5px; line-height: 1.5; font-weight: 500;
+  letter-spacing: 0; text-transform: none; white-space: pre-line;
+  box-shadow: 0 8px 24px rgba(0,0,0,.28); pointer-events: none;
+}
+.pf-info:hover > .pf-tip, .pf-info:focus-visible > .pf-tip { visibility: visible; opacity: 1; }
 `;
 
 /*  Paragraph boxes and the read-only project name always take the full row —
@@ -452,7 +482,7 @@ export default function ProjectFormFields({ form, set, errors = {}, only = null,
               /*  data-field-error lets the page scroll to the first problem.
                   On a 60-field form an error below the fold is invisible, and
                   Save looks like it simply did nothing.                      */
-              <Field key={f.name} label={typeof f.label === 'function' ? f.label(form) : f.label}
+              <Field key={f.name} label={<>{typeof f.label === 'function' ? f.label(form) : f.label}{f.tooltip && <InfoTip text={f.tooltip} />}</>}
                      data-field-error={errors[f.name] ? 'true' : undefined}
                      className={`pf-w-${widthOf(f)}`}
                      required={isRequired(f, form)} error={errors[f.name]}
