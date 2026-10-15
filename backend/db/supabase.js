@@ -238,6 +238,48 @@ async function get(key, id) {
 
 /* ── writes ────────────────────────────────────────────────────────────── */
 
+/*  Normalised client-name -> Client_Id map, cached for the process.
+
+    Why: projects link to clients by Client_Name, but the name typed on a
+    project often differs from the Clients row only by punctuation/spacing/case
+    ("David D souza" vs "David D'souza", "Chamundi Die Cast" vs
+    "Chamundi Die-Cast", an en-dash vs a hyphen, a curly vs straight
+    apostrophe). An exact match then misses and Client_Id lands NULL. The
+    normalised fallback (below) catches that whole class.
+
+    A name that normalises to the SAME key for two different clients is marked
+    ambiguous (value null) and never auto-linked — we don't guess.
+
+    Cached 10 min. It is only consulted when the exact match has already missed,
+    and the exact match always hits the live DB, so a brand-new client is never
+    missed because of a stale cache.                                         */
+let _clientNormCache = { at: 0, map: null };
+const CLIENT_NORM_TTL_MS = 10 * 60 * 1000;
+function normClientName_(x) {
+  return String(x == null ? '' : x).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+async function clientNormMap_() {
+  if (_clientNormCache.map && Date.now() - _clientNormCache.at < CLIENT_NORM_TTL_MS) {
+    return _clientNormCache.map;
+  }
+  const map = new Map();
+  try {
+    const rows = await all('clients');                 // paged; id + name among the columns
+    for (const c of rows || []) {
+      const id = c && c.Client_Id != null ? String(c.Client_Id).trim() : '';
+      if (!id) continue;
+      const k = normClientName_(c.Client_Name);
+      if (!k) continue;
+      if (map.has(k)) { if (map.get(k) !== id) map.set(k, null); }  // null = ambiguous
+      else map.set(k, id);
+    }
+    _clientNormCache = { at: Date.now(), map };
+  } catch (e) {
+    console.warn('[supabase] clientNormMap_: ' + e.message);
+  }
+  return map;
+}
+
 /** For a project, resolve Client_Id from Client_Name (FK) if not already set. */
 async function fillClientId(key, row) {
   if (key !== 'projects') return row;
@@ -245,9 +287,16 @@ async function fillClientId(key, row) {
   const name = String(row.Client_Name || '').trim();
   if (!name) return row;
   try {
+    /* 1) exact match — fast, live, covers the overwhelming majority. */
     const url = `${REST}/${encodeURIComponent(TABLE.clients)}?Client_Name=eq.${encodeURIComponent(name)}&select=Client_Id&limit=1`;
     const { body } = await req(url, { headers: headers() });
     if (Array.isArray(body) && body[0] && body[0].Client_Id) return { ...row, Client_Id: body[0].Client_Id };
+
+    /* 2) normalised fallback — ignore case/spacing/punctuation. Only links when
+          exactly one client normalises to this name (ambiguous -> skipped). */
+    const nm = await clientNormMap_();
+    const hit = nm.get(normClientName_(name));
+    if (hit) return { ...row, Client_Id: hit };
   } catch (e) { console.warn('[supabase] fillClientId: ' + e.message); }
   return row;
 }
