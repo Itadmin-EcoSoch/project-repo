@@ -498,6 +498,7 @@ export const PROJECT_SECTIONS = [
           automation does NOT create a Tracker row for the project.          */
       { name: 'flowType', label: 'Flow Type', type: 'select', sheet: 'Flow_Type',
         options: FLOW_TYPES, required: true, width: 'half', default: 'Standard',
+        tooltip: 'Choose Standard if the salesperson is from EcoSoch.\nChoose Small systems if the project was closed by an external salesperson (e.g. GRX).',
         help: 'Small systems (No TSV or TSVR required) are not added to the Design Tracker.' },
 
       { name: 'dealId', label: 'Deal ID from Zoho', type: 'text', sheet: 'Deal_ID',
