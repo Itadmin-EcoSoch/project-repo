@@ -123,6 +123,7 @@ const PROJECT_ROWS = [
   { col: 'Deal_ID',                 label: 'Deal ID in Zoho',   type: 'url' },
   { col: 'Proposal_Model',          label: 'Proposal Model',     bold: true, color: '#D32F2F' },
   { col: 'Project_Name',            label: 'Project Name' },
+  { col: 'Flow_Type',               label: 'Flow Type' },
   { col: 'Project_Size',            label: 'Capacity (in kWp)',  type: 'decimal3' },
   { col: 'Project_Type',            label: 'Type of Project' },
   { col: 'AMC_Provided',            label: 'Is there a separate AMC provided?' },
