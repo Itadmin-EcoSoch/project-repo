@@ -687,8 +687,8 @@ function Attachments({ projectId }) {
               </div>
             </div>
             {f.found ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14L21 3"/>
               </svg>
             ) : (
               <span className="att-missing">!</span>
@@ -697,7 +697,7 @@ function Attachments({ projectId }) {
         );
 
         return f.found ? (
-          <a key={f.kind} className="att-row" href={f.download} download title={`Download ${f.label}`}>
+          <a key={f.kind} className="att-row" href={f.view || f.download} target="_blank" rel="noreferrer" title={`View ${f.label}`}>
             {body}
           </a>
         ) : (
