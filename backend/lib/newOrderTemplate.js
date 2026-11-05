@@ -70,7 +70,7 @@ const S = {
       column at 50%, and once that was corrected the row rules broke at the
       column boundary. Pixel widths on the first cell are the pattern email
       clients handle consistently, and the value cell simply takes the rest. */
-  label   : "width:220px;min-width:220px;padding:10px 14px;border-bottom:1px solid #e3e7e8;background:#f7f9fa;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#42525a;vertical-align:top;line-height:1.45",
+  label   : "width:170px;padding:10px 14px;border-bottom:1px solid #e3e7e8;background:#f7f9fa;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#42525a;vertical-align:top;line-height:1.45",
   value   : "padding:10px 14px;border-bottom:1px solid #e3e7e8;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1d272c;vertical-align:top;line-height:1.45;word-break:break-word",
   empty   : "color:#b6c0c4",
 
@@ -349,8 +349,8 @@ function section(title, rows, source, files, opts) {
 
     return (
       `<tr>` +
-        `<td width="220" style="${S.label}">${esc(row.label)}</td>` +
-        `<td style="${S.value};background:${zebra};${bold}${color}">${cell}</td>` +
+        `<td width="170" class="nod-label" style="${S.label}">${esc(row.label)}</td>` +
+        `<td class="nod-value" style="${S.value};background:${zebra};${bold}${color}">${cell}</td>` +
       `</tr>`
     );
   }).join('');
@@ -442,7 +442,12 @@ function buildNewOrderEmail({ client = {}, project = {}, files = {}, addedBy = '
   const html =
     `<!DOCTYPE html><html><head><meta charset="utf-8">` +
     `<meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<title>${esc(subject)}</title></head>` +
+    `<title>${esc(subject)}</title>` +
+    `<style>@media only screen and (max-width:480px){`+
+      `.nod-label,.nod-value{display:block!important;width:100%!important;box-sizing:border-box!important}`+
+      `.nod-label{border-bottom:0!important;padding:10px 14px 0!important;background:transparent!important;font-size:11.5px!important;letter-spacing:.02em;color:#6b767c!important}`+
+      `.nod-value{padding-top:2px!important}`+
+    `}</style></head>` +
     `<body style="${S.page}">` +
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="${S.page}">` +
     `<tr><td align="center" style="padding:0">` +
