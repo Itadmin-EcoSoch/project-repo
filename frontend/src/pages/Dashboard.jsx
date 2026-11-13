@@ -80,12 +80,12 @@ export default function Dashboard() {
         showAMC={false}
         navigate={navigate}
       />
-      <DashCol
-        label="AMC Missing"
-        title="No AMC Contract"
+            <DashCol
+        label="AMC Contracts"
+        title="AMC Contract List"
         items={right}
         loading={loading}
-        emptyMsg="All projects have AMC"
+        emptyMsg="No AMC contracts found"
         showAMC={true}
         navigate={navigate}
       />
