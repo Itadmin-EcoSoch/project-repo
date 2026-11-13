@@ -39,6 +39,17 @@ const SCROLL_KEY = 'ecosoch.projects.scroll';
 /** The scrolling element is <main class="content-area">, not the window. */
 const scroller = () => document.querySelector('.content-area');
 
+/*  "Projects with AMC Contracts" is not a status — it cuts across them — so it
+    is an extra chip with its own key, slotted in after "Out of SolarCare".
+    "Has AMC" is the same rule the backend uses for the Dashboard's AMC panel
+    (routes/projects.js, dashboard=right), so the two counts always agree.  */
+const AMC_KEY   = 'AMC Contracts';
+const AMC_LABEL = 'Projects with AMC Contracts';
+const hasAmc = p => {
+  const t = String(p?.amc_type ?? '').trim();
+  return !!t && t !== 'None' && t !== 'NA';
+};
+
 function RowActions({ p, navigate, from }) {
   const go = (e, path) => { e.stopPropagation(); navigate(path, { state: { from } }); };
   const clientId = p.client_id || p.clients?.id;
@@ -129,11 +140,25 @@ export default function AllProjects() {
   useEffect(() => { load(); }, [load]);
   useSheetSync(() => load(true), 30000);
 
-  const chips = useMemo(() => buildStatusChips(projects), [projects]);
+  const chips = useMemo(() => {
+    const base = buildStatusChips(projects);
+    const amc  = {
+      key: AMC_KEY, label: AMC_LABEL, count: projects.filter(hasAmc).length,
+      dot: '#0D9488', pin: '#0D9488',
+    };
+    const at = base.findIndex(c => c.key === 'Out of SolarCare');
+    /*  If nothing is Out of SolarCare the chip is absent; fall back to just
+        before Completed, else just before All.                             */
+    const i  = at !== -1 ? at + 1
+             : (() => { const j = base.findIndex(c => c.key === 'Completed');
+                        return j !== -1 ? j : base.length - 1; })();
+    return [...base.slice(0, i), amc, ...base.slice(i)];
+  }, [projects]);
 
   const visible = useMemo(() => {
     let rows = projects;
-    if (filter !== 'All') rows = rows.filter(p => matchesStatus(p.status, filter));
+    if (filter === AMC_KEY) rows = rows.filter(hasAmc);
+    else if (filter !== 'All') rows = rows.filter(p => matchesStatus(p.status, filter));
     const q = debQ.trim().toLowerCase();
     if (q) {
       rows = rows.filter(p =>
@@ -222,7 +247,7 @@ export default function AllProjects() {
         <div style={{padding:'8px 16px',fontSize:11,color:'var(--text-muted)',fontWeight:600,background:'var(--slate-50)',borderBottom:'1px solid var(--slate-200)',display:'flex',alignItems:'center',gap:8}}>
           <span>
             Showing {Math.min(shown,visible.length)} of {visible.length} project{visible.length!==1?'s':''}
-            {filter!=='All' ? ` \u00b7 ${filter}` : ''}
+            {filter!=='All' ? ` \u00b7 ${filter===AMC_KEY ? AMC_LABEL : filter}` : ''}
             {debQ.trim() ? ` \u00b7 "${debQ.trim()}"` : ''}
           </span>
           {(filter!=='All' || debQ.trim()) && (
@@ -304,7 +329,8 @@ function Empty({ filter }) {
       </div>
       <div style={{fontSize:14,fontWeight:700,color:'var(--text-head)',marginBottom:5}}>No projects found</div>
       <div style={{fontSize:12,color:'var(--text-muted)'}}>
-        {filter!=='All'?`No "${filter}" projects`:'Projects will appear here once added'}
+        {filter===AMC_KEY ? 'No projects have an AMC contract'
+          : filter!=='All' ? `No "${filter}" projects` : 'Projects will appear here once added'}
       </div>
     </div>
   );
