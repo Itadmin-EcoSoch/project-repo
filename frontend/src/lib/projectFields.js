@@ -747,6 +747,14 @@ export const PROJECT_SECTIONS = [
       { name: 'commitment', label: 'What have you committed to the client as a salesperson?',
         type: 'textarea', sheet: 'Client_Committment', required: true },
 
+      /*  Free text rather than a number: "(if any)" means many projects have
+          no wind-speed commitment, and the answer is then NA — a number box
+          could not hold that.                                              */
+      { name: 'windSpeed',
+        label: "What's the windspeed in km/h committed to the client for the structure (if any)?",
+        type: 'text', sheet: 'Wind_Speed', required: true,
+        placeholder: 'e.g. 150 km/h, or NA if none committed' },
+
       { name: 'obstacles', label: 'Are there any obstacles to be removed before installation?',
         type: 'yesno', sheet: 'Obstacle_Removal', required: true },
 

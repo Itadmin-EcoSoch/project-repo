@@ -145,6 +145,7 @@ const PROJECT_ROWS = [
   { col: 'Project_Comments',        label: 'Project Comments' },
   { col: 'Project_Description',     label: 'Points specific to this Project' },
   { col: 'Client_Committment',      label: 'What have you committed to the client as a salesperson?' },
+  { col: 'Wind_Speed',              label: "What's the windspeed in km/h committed to the client for the structure (if any)?" },
   { col: 'Obstacle_Removal',        label: 'Are there any obstacles to be removed before installation?' },
   { col: 'Obstacle_Scope',          label: 'Is the removal of the obstacle in Client or EcoSoch scope? Provide exact details.' },
   { col: 'Elevated_drawings',       label: 'Is Elevated structure detailed drawings required?' },

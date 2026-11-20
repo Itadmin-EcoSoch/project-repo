@@ -64,6 +64,7 @@ const projects = {
   proposal_model    : 'Proposal_Model',
   flow_type         : 'Flow_Type',
   commitment        : 'Client_Committment',
+  wind_speed        : 'Wind_Speed',
   inverter_location : 'Inverter_Location',
   iq_gateway_location: 'IQ_Gateway_Location',
   obstacles         : 'Obstacle_Removal',
