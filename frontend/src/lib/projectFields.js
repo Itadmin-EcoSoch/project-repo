@@ -1219,6 +1219,15 @@ export function validateProject(form) {
     errors.expInstDate = 'Expected Installation Date must be on or before Expected Commissioning Date';
   }
 
+  /*  Residential subsidy only covers systems up to 10 kWp, so
+      a Residence or Villa above 10 kWp cannot be marked as a subsidy project.
+      The error sits on the subsidy question, the answer that has to change. */
+  if (isYes(form.subsidy) && Number(form.size) > 10 &&
+      String(form.buildingType ?? '').trim().toLowerCase() === 'residence or villa') {
+    errors.subsidy = 'Not allowed: Residence or Villa projects above 10 kWp do not get subsidy. ' +
+                     'Change the subsidy answer to No, or check the project size / building type.';
+  }
+
   /*  Commissioned Date must be on or before Warranty Start Date. */
   if (form.commissionedDate && form.warrantyStart &&
       String(form.commissionedDate) > String(form.warrantyStart)) {
