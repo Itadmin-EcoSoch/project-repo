@@ -622,6 +622,8 @@ router.patch('/:id', async (req, res, next) => {
       order_value:'Order Value', ecosoch_margin_pct:'Margin %',
       proposal_model:'Proposal Model', salesperson_email:'Salesperson',
       commitment:'What have you committed to the client as a salesperson?',
+      inverter_location:"What's the inverter location decided with the client in case of String/SolarEdge/Hybrid?",
+      iq_gateway_location:"What's the IQ Gateway location decided with the client in case of Enphase?",
       status:'Current Project Status',
       region:'Project Region', comments:'Project Comments',
       description:'Points specific to this Project',

@@ -74,6 +74,7 @@ export default function EditProject() {
           System_Category: p.system_category, Order_Value: p.order_value,
           Margin: p.ecosoch_margin_pct, Proposal_Model: p.proposal_model,
           Client_Committment: p.commitment, Obstacle_Removal: p.obstacles,
+          Inverter_Location: p.inverter_location, IQ_Gateway_Location: p.iq_gateway_location,
           Obstacle_Scope: p.obstacle_scope, Salesperson_Email: p.salesperson_email,
           GST_Number: p.gst_number, DISCOM_Name: p.discom_name,
           Billing_Name: p.billing_name, Deal_ID: p.deal_id, Subsidy: p.subsidy,

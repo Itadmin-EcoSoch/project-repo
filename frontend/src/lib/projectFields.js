@@ -273,6 +273,18 @@ const siteLocationOpen = f =>
     Solar Care block opens as soon as Type of Project is set to AMC, without
     waiting for the separate Yes/No, and that question is forced to Yes and
     locked (see forceValue / lockedTo on amcProvided below).               */
+/*  Which equipment-location question applies.
+      Inverter location — a String or Hybrid inverter, or any SolarEdge system
+                          (SolarEdge pairs optimizers with a central inverter).
+      IQ Gateway location — an Enphase system (Enphase brand or IQ-series
+                          microinverters, which are Enphase's).
+    Compared case-insensitively, since rows from AppSheet are not consistent. */
+const norm = v => String(v ?? '').trim().toLowerCase();
+export const needsInverterLocation = f =>
+  ['string', 'hybrid'].includes(norm(f?.inverterType)) || norm(f?.inverterBrand) === 'solaredge';
+export const needsIqGatewayLocation = f =>
+  norm(f?.inverterBrand) === 'enphase' || norm(f?.inverterType) === 'microinverter (iq series)';
+
 export const isAmcProject = f => String(f?.projType ?? '').trim().toUpperCase() === 'AMC';
 const amcOn = form => isYes(form.amcProvided) || isAmcProject(form);
 
@@ -734,6 +746,23 @@ export const PROJECT_SECTIONS = [
 
       { name: 'commitment', label: 'What have you committed to the client as a salesperson?',
         type: 'textarea', sheet: 'Client_Committment', required: true },
+
+      /*  Equipment location agreed with the client. Each question only applies
+          to its own kind of system, so it appears (and is required) only once
+          the System Specification answers make it relevant — see
+          needsInverterLocation / needsIqGatewayLocation above. Hidden, it
+          stores 'NA', the sheet's convention for "question did not apply".  */
+      { name: 'inverterLocation',
+        label: "What's the inverter location decided with the client in case of String/SolarEdge/Hybrid?",
+        type: 'textarea', sheet: 'Inverter_Location',
+        required: needsInverterLocation, showIf: needsInverterLocation,
+        whenHidden: 'NA' },
+
+      { name: 'iqGatewayLocation',
+        label: "What's the IQ Gateway location decided with the client in case of Enphase?",
+        type: 'textarea', sheet: 'IQ_Gateway_Location',
+        required: needsIqGatewayLocation, showIf: needsIqGatewayLocation,
+        whenHidden: 'NA' },
 
       { name: 'obstacles', label: 'Are there any obstacles to be removed before installation?',
         type: 'yesno', sheet: 'Obstacle_Removal', required: true },
