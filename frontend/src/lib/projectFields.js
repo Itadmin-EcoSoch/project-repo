@@ -747,23 +747,6 @@ export const PROJECT_SECTIONS = [
       { name: 'commitment', label: 'What have you committed to the client as a salesperson?',
         type: 'textarea', sheet: 'Client_Committment', required: true },
 
-      /*  Equipment location agreed with the client. Each question only applies
-          to its own kind of system, so it appears (and is required) only once
-          the System Specification answers make it relevant — see
-          needsInverterLocation / needsIqGatewayLocation above. Hidden, it
-          stores 'NA', the sheet's convention for "question did not apply".  */
-      { name: 'inverterLocation',
-        label: "What's the inverter location decided with the client in case of String/SolarEdge/Hybrid?",
-        type: 'textarea', sheet: 'Inverter_Location',
-        required: needsInverterLocation, showIf: needsInverterLocation,
-        whenHidden: 'NA' },
-
-      { name: 'iqGatewayLocation',
-        label: "What's the IQ Gateway location decided with the client in case of Enphase?",
-        type: 'textarea', sheet: 'IQ_Gateway_Location',
-        required: needsIqGatewayLocation, showIf: needsIqGatewayLocation,
-        whenHidden: 'NA' },
-
       { name: 'obstacles', label: 'Are there any obstacles to be removed before installation?',
         type: 'yesno', sheet: 'Obstacle_Removal', required: true },
 
@@ -881,6 +864,23 @@ export const PROJECT_SECTIONS = [
 
       { name: 'inverterType', label: 'Inverter_Type', type: 'select', sheet: 'Inverter_Type',
         options: INVERTER_TYPES, required: true, optionsKey: 'Inverter_Type' },
+
+      /*  Equipment location agreed with the client. Each question only applies
+          to its own kind of system, so it appears (and is required) only once
+          the inverter answers just above make it relevant — see
+          needsInverterLocation / needsIqGatewayLocation above. Hidden, it
+          stores 'NA', the sheet's convention for "question did not apply".  */
+      { name: 'inverterLocation',
+        label: "What's the inverter location decided with the client in case of String/SolarEdge/Hybrid?",
+        type: 'textarea', sheet: 'Inverter_Location',
+        required: needsInverterLocation, showIf: needsInverterLocation,
+        whenHidden: 'NA' },
+
+      { name: 'iqGatewayLocation',
+        label: "What's the IQ Gateway location decided with the client in case of Enphase?",
+        type: 'textarea', sheet: 'IQ_Gateway_Location',
+        required: needsIqGatewayLocation, showIf: needsIqGatewayLocation,
+        whenHidden: 'NA' },
 
       { name: 'proposalModel', label: 'Proposal Model', type: 'select', sheet: 'Proposal_Model',
         options: PROPOSAL_MODELS, required: true, optionsKey: 'Proposal_Model' },
