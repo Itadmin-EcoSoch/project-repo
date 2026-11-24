@@ -69,6 +69,7 @@ const EXTRA = {
     'Retention', 'Retention_Amount', 'Retention_Period',
     'Monitoring_Frequency', 'TSV_Required', 'Capacity_Finalised', 'Elevated_drawings',
     'New_Order_Sent_At', 'New_Order_Sent_By', 'Internal_Id',
+    'Extended_Warranty_Applicable', 'Product_Warranty_Period', 'Product_Type',
   ],
 };
 const ID_COL = {}, ALLOWED = {};
