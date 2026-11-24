@@ -1145,6 +1145,21 @@ export const PROJECT_SECTIONS = [
             + 'The nightly SolarCare job compares today against this date; cover runs '
             + 'through the whole of this day, so a warranty ending 19 Aug is out from 20 Aug.' },
 
+        
+        { name: 'extendedWarranty', label: 'Is Extended Warranty Applicable?',
+        type: 'yesno', sheet: 'Extended_Warranty_Applicable',
+        showIf: warrantyFieldsVisible, required: warrantyFieldsRequired },
+
+      { name: 'productWarrantyPeriod', label: 'Warranty Period for Products',
+        type: 'number', sheet: 'Product_Warranty_Period', step: '1', suffix: 'yrs', max: 100,
+        showIf  : f => warrantyFieldsVisible(f) && isYes(f.extendedWarranty),
+        required: f => warrantyFieldsVisible(f) && isYes(f.extendedWarranty) },
+
+      { name: 'productType', label: 'Product Type',
+        type: 'text', sheet: 'Product_Type', maxLength: 1000,
+        showIf  : f => warrantyFieldsVisible(f) && isYes(f.extendedWarranty),
+        required: f => warrantyFieldsVisible(f) && isYes(f.extendedWarranty) },
+
       /*  Radio rather than a dropdown, so the locked state is visible: on a new
           order the other choice is greyed out instead of missing, which tells
           you the rule exists rather than leaving you wondering.            */
