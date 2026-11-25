@@ -1148,6 +1148,7 @@ export const PROJECT_SECTIONS = [
         
         { name: 'extendedWarranty', label: 'Is Extended Warranty Applicable?',
         type: 'yesno', sheet: 'Extended_Warranty_Applicable',
+        tooltip: 'If the customer requests an extended warranty for any specific product, select Yes and mention the additional warranty period (in years) and the product type. These details must be provided within 6 months.',
         showIf: warrantyFieldsVisible, required: warrantyFieldsRequired },
 
       { name: 'productWarrantyPeriod', label: 'Warranty Period for Products',
